@@ -295,11 +295,11 @@ void LGP_Tree::player(StringA cmds) {
   }
 }
 
-LGP_Node* LGP_Tree::walkToNode(const rai::String& seq){
+LGP_Node* LGP_Tree::walkToNode(const rai::String& seq, int verbose){
   Graph& tmp = root->fol.KB.newSubgraph({"TMP"}, {});
   rai::String tmpseq(seq);
   tmp.read(tmpseq);
-  cout <<"decision sequence:" <<*tmp.isNodeOfGraph <<endl;
+  if(verbose>0) cout <<"decision sequence:" <<*tmp.isNodeOfGraph <<endl;
 
   //first walk to the node that corresponds to seq
   LGP_Node *node = root;
@@ -517,6 +517,7 @@ void LGP_Tree::step() {
   
   if(fringe_solved.N>numSol) {
     if(verbose>0) cout <<"NEW SOLUTION FOUND! " <<fringe_solved.last()->getTreePathString() <<endl;
+    else{cout <<"\"" <<fringe_solved.last()->getTreePathString() <<"\"," <<endl;}
     solutions.set()->append(new LGP_Tree_SolutionData(*this, fringe_solved.last()));
     solutions.set()->sort(sortComp2);
   }

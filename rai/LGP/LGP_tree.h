@@ -92,7 +92,7 @@ public:
   void optMultiple(const StringA& seqs);
 
   //-- work directly on the tree
-  LGP_Node* walkToNode(const rai::String& seq);
+  LGP_Node* walkToNode(const rai::String& seq, int verbose=1);
 
   
   // output

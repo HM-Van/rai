@@ -69,6 +69,25 @@ py::list graph2list(const Graph& G){
   return list;
 }
 
+void node2list(const Node* n, py::list *list){
+    if(n->isGraph()) {
+      list->append( graph2dict(n->get<Graph>()) );
+    } else if(n->isOfType<rai::String>()) {
+      list->append( n->get<rai::String>().p );
+    } else if(n->isOfType<arr>()) {
+      list->append( conv_arr2stdvec( n->get<arr>() ) );
+    } else if(n->isOfType<double>()) {
+      list->append( n->get<double>() );
+    } else if(n->isOfType<int>()) {
+      list->append( n->get<int>() );
+    } else if(n->isOfType<uint>()) {
+      list->append( n->get<uint>() );
+    } else if(n->isOfType<bool>()) {
+      list->append( n->get<bool>() );
+    } else {
+    }
+}
+
 Skeleton list2skeleton(const py::list& L){
   Skeleton S;
   for(uint i=0;i<L.size();i+=3){
@@ -221,6 +240,23 @@ PYBIND11_MODULE(libry, m) {
     return I_conv(self.get()->getFrameNames());
   } )
 
+  .def("getFrameNamesLogical", [](ry::Config& self){
+    StringA names={};
+    for(auto frame:self.get()->frames){
+        if(frame->ats["logical"]){names.append(frame->name);}
+    }
+    return I_conv(names);
+  } )
+
+  .def("get7dLogical", [](ry::Config& self, const ry::I_StringA& frames, int size){
+    arr X(size,7); int i=0;
+    auto Kget = self.get();
+    for(auto frame: frames){
+        rai::Frame *f = Kget->getFrameByName(frame.c_str(), true);
+        if(f) {X[i] = f->X.getArr7d(); i=i+1;}}
+    return pybind11::array(X.dim(), X.p);
+  } )
+
   .def("getFrameState", [](ry::Config& self){
     arr X = self.get()->getFrameState();
     return pybind11::array(X.dim(), X.p);
@@ -234,23 +270,44 @@ PYBIND11_MODULE(libry, m) {
     return pybind11::array(X.dim(), X.p);
   } )
 
-  .def("setFrameState", [](ry::Config& self, const std::vector<double>& X, const ry::I_StringA& frames, bool calc_q_from_X){
+  .def("getLogical", [](ry::Config& self, const char* frame){
+    py::list list;
+    auto Kget = self.get();
+    rai::Frame *f = Kget->getFrameByName(frame, true);
+    node2list(f->ats["logical"], &list);
+    return list;
+  } )
+
+  .def("getLogical", [](ry::Config& self, const ry::I_StringA& frames){
+    py::list list; StringA names={};
+    auto Kget = self.get();
+    for(auto frame: I_conv(frames)){
+        rai::Frame *f = Kget->getFrameByName(frame, true);
+        node2list(f->ats["logical"], &list);
+	//if(!(list[-1])){names.append(frame);}
+    }
+    return list;
+  } )
+
+  .def("setFrameState", [](ry::Config& self, const std::vector<double>& X, const ry::I_StringA& frames, bool calc_q_from_X, int verb){
     arr _X = conv_stdvec2arr(X);
     _X.reshape(_X.N/7, 7);
-    self.set()->setFrameState(_X, I_conv(frames), calc_q_from_X);
+    self.set()->setFrameState(_X, I_conv(frames), calc_q_from_X, true, verb);
   }, "",
     py::arg("X"),
     py::arg("frames") = ry::I_StringA(),
-    py::arg("calc_q_from_X") = true )
+    py::arg("calc_q_from_X") = true,
+    py::arg("verb")=1 )
 
-  .def("setFrameState", [](ry::Config& self, const pybind11::array& X, const ry::I_StringA& frames, bool calc_q_from_X){
+  .def("setFrameState", [](ry::Config& self, const pybind11::array& X, const ry::I_StringA& frames, bool calc_q_from_X, int verb){
     arr _X = numpy2arr(X);
     _X.reshape(_X.N/7, 7);
-    self.set()->setFrameState(_X, I_conv(frames), calc_q_from_X);
+    self.set()->setFrameState(_X, I_conv(frames), calc_q_from_X,true,verb);
   }, "",
     py::arg("X"),
         py::arg("frames") = ry::I_StringA(),
-        py::arg("calc_q_from_X") = true )
+        py::arg("calc_q_from_X") = true,
+        py::arg("verb")=1 )
 
   .def("feature", [](ry::Config& self, FeatureSymbol fs, const ry::I_StringA& frames) {
     ry::RyFeature F;
@@ -570,6 +627,10 @@ PYBIND11_MODULE(libry, m) {
     self.komo->world.makeObjectsFree(I_conv(objs));
   } )
 
+  .def("delete",[](ry::RyKOMO& self){
+    self.komo->~KOMO();
+  })
+  
   .def("activateCollisionPairs", [](ry::RyKOMO& self, const std::vector<std::pair<std::string, std::string> >& collision_pairs){
     for (const auto&  pair : collision_pairs) {
       self.komo->activateCollisions(rai::String(pair.first), rai::String(pair.second));
@@ -687,6 +748,18 @@ PYBIND11_MODULE(libry, m) {
     return pybind11::array(X.dim(), X.p);
   } )
 
+  .def("get7dLogical", [](ry::RyKOMO& self, int t, const ry::I_StringA& frames, int size){
+    arr X(size,7); int i=0;
+    for(auto frame: frames){
+        rai::Frame *f = self.komo->configurations(t+self.komo->k_order)->getFrameByName(frame.c_str(), true);
+        if(f) {X[i] = f->X.getArr7d(); i=i+1;}}
+    return pybind11::array(X.dim(), X.p);
+  } )
+
+  .def("getFrameNames", [](ry::RyKOMO& self, int t){
+    return I_conv( self.komo->configurations(t+self.komo->k_order)->getFrameNames());
+  } )
+
   .def("getPathFrames", [](ry::RyKOMO& self, const ry::I_StringA& frames){
     arr X = self.komo->getPath_frames(I_conv(frames));
     return pybind11::array(X.dim(), X.p);
@@ -738,8 +811,8 @@ PYBIND11_MODULE(libry, m) {
   //===========================================================================
 
   py::class_<ry::RyLGP_Tree>(m, "LGP_Tree")
-  .def("walkToNode", [](ry::RyLGP_Tree& self, const char* seq){
-    self.lgp->walkToNode(seq);
+  .def("walkToNode", [](ry::RyLGP_Tree& self, const char* seq, int verbose){
+    self.lgp->walkToNode(seq, verbose);
   } )
 
   .def("walkToRoot", [](ry::RyLGP_Tree& self){
@@ -773,16 +846,39 @@ PYBIND11_MODULE(libry, m) {
     return graph2dict(G);
   } )
 
+  .def("nodeState", [](ry::RyLGP_Tree& self){
+    Graph G = self.lgp->focusNode->getState();
+    return graph2list(G);
+  } )
+
+  .def("isTerminal", [](ry::RyLGP_Tree& self){
+    return self.lgp->focusNode->isTerminal;
+  } )
+
+  .def("isInfeasible", [](ry::RyLGP_Tree& self){
+    return self.lgp->focusNode->isInfeasible;
+  } )
+
+  .def("returnFeasible", [](ry::RyLGP_Tree& self, BoundType bound){
+    return self.lgp->focusNode->feasible(bound);
+  } )
+
+  .def("isExpanded", [](ry::RyLGP_Tree& self){
+    return self.lgp->focusNode->isExpanded;
+  } )
+
   .def("viewTree", [](ry::RyLGP_Tree& self){
     self.lgp->displayTreeUsingDot();
   } )
 
-  .def("optBound", [](ry::RyLGP_Tree& self, BoundType bound, bool collisions){
+  .def("optBound", [](ry::RyLGP_Tree& self, BoundType bound, bool collisions, bool view){
     self.lgp->focusNode->optBound(bound, collisions);
-    if(bound == BD_seqPath){
-      self.lgp->focusNode->komoProblem(bound)->displayTrajectory(.02, false, false);
-    }else{
-      self.lgp->focusNode->komoProblem(bound)->displayTrajectory(.1, false, false);
+    if(view){
+      if(bound == BD_seqPath){
+        self.lgp->focusNode->komoProblem(bound)->displayTrajectory(.02, false, false);
+      }else{
+        self.lgp->focusNode->komoProblem(bound)->displayTrajectory(.1, false, false);
+      }
     }
   } )
 
@@ -817,7 +913,19 @@ PYBIND11_MODULE(libry, m) {
     const auto& komo = self.lgp->getKOMO(solution, bound);
     return ry::RyKOMO(komo);
   } )
+  
+  .def("getFrameState", [](ry::RyLGP_Tree& self){
+    arr X = self.lgp->kin.getFrameState();
+    return pybind11::array(X.dim(), X.p);
+  } )
 
+  .def("getFrameState", [](ry::RyLGP_Tree& self, const char* frame){
+    arr X;
+    auto Kget = self.lgp->kin;
+    rai::Frame *f = Kget.getFrameByName(frame, true);
+    if(f) X = f->X.getArr7d();
+    return pybind11::array(X.dim(), X.p);
+  } )
   ;
 
   //===========================================================================
@@ -875,6 +983,7 @@ PYBIND11_MODULE(libry, m) {
       ENUMVAL(BD,pose)
       ENUMVAL(BD,seq)
       ENUMVAL(BD,path)
+      ENUMVAL(BD,pathStep)
       ENUMVAL(BD,seqPath)
       ENUMVAL(BD,max)
       .export_values();

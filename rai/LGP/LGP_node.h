@@ -47,6 +47,7 @@ struct LGP_Node {
   //-- kinematics: the kinematic structure of the world after the decision path
   const rai::KinematicWorld& startKinematics; ///< initial start state kinematics
   rai::KinematicWorld effKinematics; ///< the effective kinematics (computed from kinematics and symbolic state)
+  rai::KinematicWorld effKinematicsPath;
   
   bool isExpanded=false;
   bool isInfeasible=false;
@@ -80,6 +81,7 @@ struct LGP_Node {
   void optBound(BoundType bound, bool collisions=false, int verbose=-1);
   void resetData();
   void computeEndKinematics();
+  void computeEndKinematicsPath();
   
   //-- helpers to get other nodes
   MNodeL getTreePath() const; ///< return the decision path in terms of a list of nodes (just walking to the root)
@@ -101,6 +103,7 @@ private:
 public:
   void write(ostream& os=cout, bool recursive=false, bool path=true) const;
   Graph getInfo() const;
+  Graph getState() const;
   void getGraph(Graph& G, Node *n=NULL, bool brief=false);
   Graph getGraph(bool brief=false) { Graph G; getGraph(G, NULL, brief); G.checkConsistency(); return G; }
 };

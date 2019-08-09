@@ -7,6 +7,7 @@ enum BoundType{ BD_all=-1,
                 BD_pose,
                 BD_seq,
                 BD_path,
+                BD_pathStep,
                 BD_seqPath,
                 BD_seqVelPath,
                 BD_max };

@@ -23,6 +23,7 @@ void skeleton2Bound(KOMO& komo, BoundType boundType, const Skeleton& S,
         finalS.last().phase0 -= maxPhase-1.;
         finalS.last().phase1 -= maxPhase-1.;
       }
+      writeSkeleton(finalS);
 
       komo.setModel(effKinematics, collisions);
       komo.setTiming(1., 1, 10., 1);
@@ -81,6 +82,58 @@ void skeleton2Bound(KOMO& komo, BoundType boundType, const Skeleton& S,
       komo.reset();
       //      cout <<komo.getPath_times() <<endl;
     } break;
+    case BD_pathStep:{
+       //-- grep only the latest entries in the skeleton
+      Skeleton finalS;
+      /*for(const SkeletonEntry& s:S){
+      
+        //if(s.phase0>=maxPhase){
+        //  finalS.append(s);
+        //  finalS.last().phase1 = maxPhase+0.5;
+        //}
+        //else if(s.phase1==maxPhase){
+        //  finalS.append(s);
+        //  finalS.last().phase0 = maxPhase-1;
+        //  finalS.last().phase1 = maxPhase+0.5;
+        //}
+        if(s.phase0>=maxPhase){
+          finalS.append(s);
+          finalS.last().phase0 -= maxPhase-1.;
+          finalS.last().phase1 -= maxPhase-1;
+        }
+        else if(s.phase1==maxPhase){
+          finalS.append(s);
+          finalS.last().phase0 -= maxPhase-1;
+          finalS.last().phase1 -= maxPhase-1;
+        }
+      }*/
+
+      for(const SkeletonEntry& s:S)if(s.phase0>=maxPhase){
+        finalS.append(s);
+        finalS.last().phase0 -= maxPhase-1.;
+        finalS.last().phase1 -= maxPhase-1.;
+      }
+
+      writeSkeleton(finalS);
+
+      komo.setModel(effKinematics, collisions);
+      uint stepsPerPhase = rai::getParameter<uint>("LGP/stepsPerPhase", 10);
+      uint pathOrder = rai::getParameter<uint>("LGP/pathOrder", 2);
+      //komo.setTiming(maxPhase+.5, stepsPerPhase, 10., pathOrder);
+      komo.setTiming(1.5, stepsPerPhase, 10., pathOrder);
+
+      komo.setHoming(0., -1., 1e-2);
+      if(pathOrder==1) komo.setSquaredQVelocities();
+      else komo.setSquaredQAccelerations();
+      komo.setSquaredQuaternionNorms();
+
+
+      komo.setSkeleton(finalS);
+
+      if(collisions) komo.add_collision(true, 0, 1e1);
+
+      komo.reset();
+    } break;
     case BD_seqPath: {
       komo.setModel(startKinematics, collisions);
       uint stepsPerPhase = rai::getParameter<uint>("LGP/stepsPerPhase", 10);
@@ -109,7 +162,6 @@ void skeleton2Bound(KOMO& komo, BoundType boundType, const Skeleton& S,
       komo.initWithWaypoints(waypoints);
       //      cout <<komo.getPath_times() <<endl;
     } break;
-
     case BD_seqVelPath: {
       komo.setModel(startKinematics, collisions);
       uint stepsPerPhase = rai::getParameter<uint>("LGP/stepsPerPhase", 10);
