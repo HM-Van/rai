@@ -108,10 +108,12 @@ void skeleton2Bound(KOMO& komo, BoundType boundType, const Skeleton& S,
         }
       }*/
 
-      for(const SkeletonEntry& s:S)if(s.phase0>=maxPhase){
+      for(const SkeletonEntry& s:S)if(s.phase0>=maxPhase || s.phase1>=maxPhase-1){
         finalS.append(s);
         finalS.last().phase0 -= maxPhase-1.;
         finalS.last().phase1 -= maxPhase-1.;
+
+        if(finalS.last().phase0<0){finalS.last().phase0=0;}
       }
 
       writeSkeleton(finalS);

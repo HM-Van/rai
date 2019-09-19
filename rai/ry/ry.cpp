@@ -257,6 +257,21 @@ PYBIND11_MODULE(libry, m) {
     return pybind11::array(X.dim(), X.p);
   } )
 
+  .def("get7dSizeLogical", [](ry::Config& self, const ry::I_StringA& frames, int size){
+    arr X(size,11); int i=0;
+    auto Kget = self.get();
+    for(auto frame: frames){
+        rai::Frame *f = Kget->getFrameByName(frame.c_str(), true);
+        if(f) {
+          arr tmparr = f->X.getArr7d();
+          tmparr.append(f->shape->getGeom().size);
+          X[i] = tmparr;
+          i=i+1;
+          }
+    }
+    return pybind11::array(X.dim(), X.p);
+  } )
+
   .def("getFrameState", [](ry::Config& self){
     arr X = self.get()->getFrameState();
     return pybind11::array(X.dim(), X.p);
