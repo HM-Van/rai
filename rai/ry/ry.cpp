@@ -928,6 +928,11 @@ PYBIND11_MODULE(libry, m) {
     const auto& komo = self.lgp->getKOMO(solution, bound);
     return ry::RyKOMO(komo);
   } )
+
+  .def("resetFrameState", [](ry::RyLGP_Tree& self){
+    if(&self.lgp->kin != &self.lgp->root->startKinematics)
+      self.lgp->kin = self.lgp->root->startKinematics;
+  } )
   
   .def("getFrameState", [](ry::RyLGP_Tree& self){
     arr X = self.lgp->kin.getFrameState();
