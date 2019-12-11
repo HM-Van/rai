@@ -257,6 +257,24 @@ PYBIND11_MODULE(libry, m) {
     return pybind11::array(X.dim(), X.p);
   } )
 
+  .def("getfeaturesLogical", [](ry::Config& self, const ry::I_StringA& frames, int size, const ry::I_StringA& base){
+    arr X(size,2); int i=0;
+    auto Kget = self.get();
+    rai::Frame *f = Kget->getFrameByName(base[0].c_str(), true);
+    rai::Vector baseVec = f->X.pos;
+
+    for(auto frame: frames){
+        rai::Frame *f = Kget->getFrameByName(frame.c_str(), true);
+        if(f) {
+          rai::Vector tmpVec = f->X.pos - baseVec;
+          X[i].p[0] = tmpVec.length();
+          X[i].p[1] = tmpVec.phi();
+          i=i+1;
+        }
+    }
+    return pybind11::array(X.dim(), X.p);
+  } )
+
   .def("get7dSizeLogical", [](ry::Config& self, const ry::I_StringA& frames, int size){
     arr X(size,11); int i=0;
     auto Kget = self.get();
@@ -876,6 +894,10 @@ PYBIND11_MODULE(libry, m) {
 
   .def("returnFeasible", [](ry::RyLGP_Tree& self, BoundType bound){
     return self.lgp->focusNode->feasible(bound);
+  } )
+
+  .def("reset", [](ry::RyLGP_Tree& self){
+    return self.lgp->focusNode->resetData();
   } )
 
   .def("isExpanded", [](ry::RyLGP_Tree& self){
