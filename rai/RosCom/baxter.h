@@ -1,5 +1,5 @@
 /*  ------------------------------------------------------------------
-    Copyright (c) 2017 Marc Toussaint
+    Copyright (c) 2019 Marc Toussaint
     email: marc.toussaint@informatik.uni-stuttgart.de
 
     This code is distributed under the MIT License.
@@ -13,27 +13,37 @@
 
 #ifdef RAI_ROS
 #include <sensor_msgs/JointState.h>
-bool baxter_get_q_qdot_u(arr& q, arr& q_dot, arr& u, const sensor_msgs::JointState& msg, const rai::KinematicWorld& baxterModel);
-//TODO: redundant -> remove
-bool baxter_update_qReal(arr& qReal, const sensor_msgs::JointState& msg, const rai::KinematicWorld& baxterModel);
-arr baxter_getEfforts(const sensor_msgs::JointState& msg, const rai::KinematicWorld& baxterModel);
+bool baxter_get_q_qdot_u(arr& q, arr& q_dot, arr& u, const sensor_msgs::JointState& msg, const rai::Configuration& baxterModel);
 #endif
 
 struct SendPositionCommandsToBaxter : Thread {
   Var<CtrlMsg> ctrl_ref;
-  struct sSendPositionCommandsToBaxter *s;
-  rai::KinematicWorld baxterModel;
-  
-  SendPositionCommandsToBaxter(const rai::KinematicWorld& baxterWorld, const Var<CtrlMsg>& _ctrl_ref);
+  struct sBaxterInterface* s;
+
+  SendPositionCommandsToBaxter(const rai::Configuration& baxterWorld, const Var<CtrlMsg>& _ctrl_ref);
   ~SendPositionCommandsToBaxter() {}
-  
+
   void open();
   void step();
   void close();
-  
+
   bool enablePositionControlL = true;
   bool enablePositionControlR = true;
   bool totalTorqueModeL = false;
   bool totalTorqueModeR = false;
 };
 
+struct BaxterInterface {
+  struct sBaxterInterface* s;
+
+  BaxterInterface(bool useRosDefault);
+  ~BaxterInterface();
+
+  arr get_q();
+  arr get_qdot();
+  arr get_u();
+  bool get_grabbed(const std::string& whichArm);
+  bool get_opened(const std::string& whichArm);
+
+  void send_q(const arr& q_ref, bool enableL=true, bool enableR=true);
+};

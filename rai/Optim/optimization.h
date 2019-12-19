@@ -1,5 +1,5 @@
 /*  ------------------------------------------------------------------
-    Copyright (c) 2017 Marc Toussaint
+    Copyright (c) 2019 Marc Toussaint
     email: marc.toussaint@informatik.uni-stuttgart.de
 
     This code is distributed under the MIT License.
@@ -39,7 +39,7 @@ extern ObjectiveTypeA& NoTermTypeA;
 struct ConstrainedProblem {
   //TODO: add getStructure -> dim_x, tt
   virtual ~ConstrainedProblem() = default;
-  virtual void phi(arr& phi, arr& J, arr& H, ObjectiveTypeA& ot, const arr& x, arr& lambda) = 0;
+  virtual void phi(arr& phi, arr& J, arr& H, ObjectiveTypeA& ot, const arr& x) = 0;
 };
 
 //===========================================================================
@@ -52,7 +52,7 @@ typedef std::function<void(arr& phi, arr& J, arr& H, ObjectiveTypeA& tt, const a
 struct Conv_Lambda_ConstrainedProblem : ConstrainedProblem {
   ConstrainedProblemLambda f;
   Conv_Lambda_ConstrainedProblem(const ConstrainedProblemLambda& f): f(f) {}
-  void phi(arr& phi, arr& J, arr& H, ObjectiveTypeA& tt, const arr& x) { f(phi, J, H, tt, x); }
+  void phi(arr& phi, arr& J, arr& H, ObjectiveTypeA& ot, const arr& x) { f(phi, J, H, ot, x); }
 };
 
 //===========================================================================
@@ -62,8 +62,36 @@ struct Conv_Lambda_ConstrainedProblem : ConstrainedProblem {
 
 bool checkJacobianCP(ConstrainedProblem& P, const arr& x, double tolerance);
 bool checkHessianCP(ConstrainedProblem& P, const arr& x, double tolerance);
-bool checkDirectionalGradient(const ScalarFunction &f, const arr& x, const arr& delta, double tolerance);
-bool checkDirectionalJacobian(const VectorFunction &f, const arr& x, const arr& delta, double tolerance);
+bool checkDirectionalGradient(const ScalarFunction& f, const arr& x, const arr& delta, double tolerance);
+bool checkDirectionalJacobian(const VectorFunction& f, const arr& x, const arr& delta, double tolerance);
+
+inline arr summarizeErrors(const arr& phi, const ObjectiveTypeA& tt) {
+  arr err = zeros(3);
+  for(uint i=0; i<phi.N; i++) {
+    if(tt(i)==OT_f) err(0) += phi(i);
+    if(tt(i)==OT_sos) err(0) += rai::sqr(phi(i));
+    if(tt(i)==OT_ineq && phi(i)>0.) err(1) += phi(i);
+    if(tt(i)==OT_eq) err(2) += fabs(phi(i));
+  }
+  return err;
+}
+
+//===========================================================================
+//
+// accumulative constraints
+//
+
+inline void accumulateInequalities(arr& y, arr& J, const arr& yAll, const arr& JAll){
+  y.resize(1).setZero();
+  if(!!J) J.resize(1,JAll.d1).setZero();
+
+  for(uint i=0;i<yAll.N;i++){
+    if(yAll.elem(i)>0.){
+      y.scalar() += yAll.elem(i);
+      if(!!J && !!JAll) J[0] += JAll[i];
+    }
+  }
+}
 
 //===========================================================================
 //
@@ -74,7 +102,7 @@ enum ConstrainedMethodType { noMethod=0, squaredPenalty, augmentedLag, logBarrie
 
 struct OptOptions {
   int verbose;
-  double *fmin_return;
+  double* fmin_return;
   double stopTolerance;
   double stopFTolerance;
   double stopGTolerance;
@@ -116,10 +144,10 @@ extern Singleton<OptOptions> globalOptOptions;
 // helpers
 //
 
-void displayFunction(const ScalarFunction &f, bool wait=false, double lo=-1.2, double hi=1.2);
+void displayFunction(const ScalarFunction& f, bool wait=false, double lo=-1.2, double hi=1.2);
 
 // function evaluation counter (used only for performance meassurements, global for simplicity)
-extern uint eval_cost;
+extern uint eval_count;
 
 //===========================================================================
 //

@@ -1,3 +1,4 @@
+
 BASE = .
 
 target: src
@@ -14,11 +15,13 @@ bin_paths = $(shell find bin -mindepth 2 -maxdepth 2 -name 'Makefile' -printf "%
 
 ################################################################################
 
-initUbuntuPackages: force
+installUbuntuAll: force
 	@echo "##### calling make installUbuntu in each lib"
 	@find rai -mindepth 1 -maxdepth 1 -type d -exec make installUbuntu -C {} \;
 
-printUbuntu: $(DEPEND:%=inPath_printUbuntuPackages/%) printUbuntuPackages
+printUbuntuAll: $(DEPEND:%=inPath_printUbuntu/%) printUbuntu
+
+printDependAll: $(DEPEND:%=inPath_printDepend/%) printDepend
 
 tests: $(test_paths:%=inPath_make/%)
 
@@ -46,6 +49,11 @@ runTests: tests
 	@rm -f z.test-report
 	@find test -mindepth 2 -maxdepth 2 -type d \
 		-exec build/run-path.sh {} \;
+
+################################################################################
+
+deletePotentiallyNonfreeCode: force
+	@rm -Rf rai/Kin/SWIFT rai/Kin/SWIFT_decomposer rai/Geo/Lewiner
 
 ################################################################################
 

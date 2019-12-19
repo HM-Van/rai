@@ -12,17 +12,16 @@ viewing the model in the OpenGL window (after pressing ENTER).\n\
 Use the number keys 1 2 3 4 5 to toggle display options.\n\
 ";
 
-
 int MAIN(int argc,char **argv){
   rai::initCmdLine(argc, argv);
 
     cout <<USAGE <<endl;
 
-    rai::String file=rai::getParameter<rai::String>("file",STRING("test.ors"));
+    rai::String file=rai::getParameter<rai::String>("file",STRING("test.g"));
     if(rai::argc>=2 && rai::argv[1][0]!='-') file=rai::argv[1];
     cout <<"opening file `" <<file <<"'" <<endl;
 
-    rai::KinematicWorld K;
+    rai::Configuration K;
     for(;;){
     Inotify ino(file);
     try {
@@ -42,16 +41,19 @@ int MAIN(int argc,char **argv){
     K.checkConsistency();
     K >>FILE("z.g");
     //some optional manipulations
-    K.optimizeTree();
-    K.calc_q();
+    if(rai::checkParameter<bool>("prune")){
+      K.optimizeTree(true, true, true);
+    }else{
+      K.optimizeTree(false, false, false);
+    }
+    K.ensure_q();
     K.checkConsistency();
-    if(K.fwdActiveSet.N == K.frames.N) K.sortFrames();
-    K >>FILE("z.g");
+    K.sortFrames();
+
 //    makeConvexHulls(G.frames);
 //    computeOptimalSSBoxes(G.shapes);
-//    G >>FILE("z.ors");
-//    K.watch(true);
-//    return;
+
+    K >>FILE("z.g");
 
     if(rai::checkParameter<bool>("dot")) K.displayDot();
     K.writeURDF(FILE("z.urdf"));

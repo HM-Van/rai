@@ -1,5 +1,5 @@
 /*  ------------------------------------------------------------------
-    Copyright (c) 2017 Marc Toussaint
+    Copyright (c) 2019 Marc Toussaint
     email: marc.toussaint@informatik.uni-stuttgart.de
 
     This code is distributed under the MIT License.
@@ -12,52 +12,73 @@
 
 //===========================================================================
 
-void Objective::setCostSpecs(int fromStep, int toStep) {
+void Objective::setCostSpecs(int fromStep, int toStep, bool sparse) {
   CHECK_GE(fromStep, 0, "");
-  CHECK_GE(toStep, fromStep, "");
-  vars.resize(toStep+1).setZero();
-  for(uint t=fromStep; t<=(uint)toStep; t++) vars(t) = 1;
-#if 0
-  vars.resize(prec.N, map->order+1);
-  for(uint t=0;t<vars.d0;t++)
-    for(int i=0;i<(int)map->order+1;i++) vars(t,i) = t+i-(int)map->order;
-#endif
+//  CHECK_GE(toStep, fromStep, "");
+  if(!sparse) {
+    if(toStep>=fromStep)
+      configs.resize(toStep+1).setZero();
+    else configs.clear();
+    for(int t=fromStep; t<=toStep; t++) configs(t) = 1;
+  } else {
+    if(toStep>=fromStep)
+      configs.resize(1+toStep-fromStep, map->order+1);
+    else configs.resize(0, map->order+1);
+    for(int t=fromStep; t<=toStep; t++)
+      for(uint j=0; j<configs.d1; j++) configs(t-fromStep, j) = t+j-int(map->order);
+  }
 }
 
-void Objective::setCostSpecs(double fromTime, double toTime, int stepsPerPhase, uint T,
-                             int deltaFromStep, int deltaToStep) {
+void Objective::setCostSpecs(const arr& times, int stepsPerPhase, uint T,
+                             int deltaFromStep, int deltaToStep, bool sparse) {
 
-  if(toTime>double(T)/stepsPerPhase+1.){
+  double fromTime=0, toTime=-1.;
+  if(!times.N) {
+  } else if(times.N==1) {
+    fromTime = toTime = times(0);
+  } else {
+    CHECK_EQ(times.N, 2, "");
+    fromTime = times(0);
+    toTime = times(1);
+  }
+
+  if(toTime>double(T)/stepsPerPhase+1.) {
     LOG(-1) <<"beyond the time!: endTime=" <<toTime <<" phases=" <<double(T)/stepsPerPhase;
   }
 
-  if(stepsPerPhase<0) stepsPerPhase=T;
-//  if(conv_time2step(toTime, stepsPerPhase)>T-1){
-//    LOG(-1) <<"beyond the time!: endTime=" <<toTime <<" phases=" <<double(T)/stepsPerPhase;
-//  }
-  int tFrom = (fromTime<0.?0:conv_time2step(fromTime, stepsPerPhase));
-  int tTo = (toTime<0.?T-1:conv_time2step(toTime, stepsPerPhase));
-  
-  if(fromTime>=0 && deltaFromStep) tFrom+=deltaFromStep;
-  if(toTime>=0 && deltaToStep) tTo+=deltaToStep;
+  CHECK_GE(stepsPerPhase, 0, "");
 
-  if(tFrom<0) tFrom=0;
-  if(tTo<0) tTo=0;
+  int fromStep = (fromTime<0.?0:conv_time2step(fromTime, stepsPerPhase));
+  int toStep   = (toTime<0.?T-1:conv_time2step(toTime, stepsPerPhase));
 
+  if(fromTime>=0 && deltaFromStep) fromStep+=deltaFromStep;
+  if(toTime>=0 && deltaToStep) toStep+=deltaToStep;
 
-  setCostSpecs(tFrom, tTo);
-}
+  if(fromStep<0) fromStep=0;
+//  if(toStep<0) toStep=0;
+  if(toStep>=(int)T && T>0) toStep=T-1;
 
-void Objective::setCostSpecsDense(const intA& _vars) {
-  vars = _vars;
-  vars.reshape(1, vars.N);
+  setCostSpecs(fromStep, toStep, sparse);
 }
 
 bool Objective::isActive(uint t) {
-  if(!vars.N) return false;
-  CHECK_EQ(vars.nd, 1, "variables are not time indexed (tuples for dense problem instead)");
-  return (vars.N>t && vars(t));
+  if(!configs.N) return false;
+  CHECK_EQ(configs.nd, 1, "variables are not time indexed (tuples for dense problem instead)");
+  return (configs.N>t && configs(t));
 }
 
+void Objective::write(std::ostream& os) const {
+  os <<"TASK '" <<name <<"'";
+  if(configs.N) {
+    if(configs.nd==1) {
+      if(configs.N>4) writeConsecutiveConstant(os, configs);
+      else os <<" ("<<configs <<')';
+    } else os <<" (" <<configs.first() <<".." <<configs.last() <<')';
+  } else os <<" ()";
+  os <<"  type:" <<type
+     <<"  order:" <<map->order
+     <<"  target:" <<map->target
+     <<"  scale:" <<map->scale;
+}
 
 //===========================================================================

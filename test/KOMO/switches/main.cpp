@@ -9,20 +9,20 @@ using namespace std;
 //===========================================================================
 
 void TEST(Grasp){
-  rai::KinematicWorld K("model.g");
+  rai::Configuration K("model.g");
   K.optimizeTree();
   K.checkConsistency();
 
   KOMO komo;
   komo.setModel(K);
   komo.setPathOpt(2.5, 10., 5.);
-  komo.setSquaredQAccelerations();
+  komo.setSquaredQAccVelHoming();
 
 #if 0
   komo.setGrasp(1., "endeff", "stick");
 #else
   komo.add_touch(1., 1., "endeff", "stickTip");
-  komo.addSwitch_stable(1., -1., "endeff", "stickTip");
+  komo.addSwitch_stable(1., -1., "endeff", "stick");
 #endif
 
   komo.add_collision(true);
