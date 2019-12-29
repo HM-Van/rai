@@ -155,6 +155,7 @@ void skeleton2Bound(KOMO& komo, BoundType boundType, const Skeleton& S,
     } break;
     case BD_pathStep:{
        //-- grep only the latest entries in the skeleton
+      /*
       Skeleton finalS;
       for(const SkeletonEntry& s:S)if(s.phase0>=maxPhase || s.phase1>=maxPhase-1){
         finalS.append(s);
@@ -162,6 +163,22 @@ void skeleton2Bound(KOMO& komo, BoundType boundType, const Skeleton& S,
         finalS.last().phase1 -= maxPhase-1.;
 
         if(finalS.last().phase0<0){finalS.last().phase0=0;}
+      }*/
+
+      double optHorizon=maxPhase;
+      if(optHorizon<1.) optHorizon=maxPhase=1.;
+      if(optHorizon>2.) optHorizon=2.;
+
+      //-- remove non-switches
+      Skeleton finalS;
+      for(const SkeletonEntry& s:S) {
+        if(/*modes.contains(s.symbol) ||*/ s.phase0>=maxPhase) {
+          SkeletonEntry& fs = finalS.append(s);
+          fs.phase0 -= maxPhase-optHorizon;
+          fs.phase1 -= maxPhase-optHorizon;
+          if(fs.phase0<0.) fs.phase0=0.;
+          if(fs.phase1<0.) fs.phase1=0.;
+        }
       }
 
       writeSkeleton(cout, finalS, getSwitchesFromSkeleton(finalS));
@@ -170,7 +187,7 @@ void skeleton2Bound(KOMO& komo, BoundType boundType, const Skeleton& S,
       uint stepsPerPhase = rai::getParameter<uint>("LGP/stepsPerPhase", 10);
       uint pathOrder = rai::getParameter<uint>("LGP/pathOrder", 2);
       //komo.setTiming(maxPhase+.5, stepsPerPhase, 10., pathOrder);
-      komo.setTiming(1.5, stepsPerPhase, 10., pathOrder);
+      komo.setTiming(optHorizon+.5, stepsPerPhase, 10., pathOrder);
       komo.animateOptimization = 0;
 
       komo.setSquaredQuaternionNorms();

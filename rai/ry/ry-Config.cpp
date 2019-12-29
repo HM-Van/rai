@@ -194,6 +194,24 @@ pybind11::arg("joints") = ry::I_StringA()
     return pybind11::array(X.dim(), X.p);
   } )
 
+  .def("getfeatures2DLogical", [](ry::Config& self, const ry::I_StringA& frames, int size, const ry::I_StringA& base){
+    arr X(size,2); int i=0;
+    auto Kget = self.get();
+    rai::Frame *f = Kget->getFrameByName(base[0].c_str(), true);
+    rai::Vector baseVec = f->ensure_X().pos;
+
+    for(auto frame: frames){
+        rai::Frame *f = Kget->getFrameByName(frame.c_str(), true);
+        if(f) {
+          rai::Vector tmpVec = f->ensure_X().pos - baseVec;
+          X[i].p[0] = tmpVec.radius();
+          X[i].p[1] = tmpVec.phi();
+          i=i+1;
+        }
+    }
+    return pybind11::array(X.dim(), X.p);
+  } )
+
   .def("get7dSizeLogical", [](ry::Config& self, const ry::I_StringA& frames, int size){
     arr X(size,11); int i=0;
     auto Kget = self.get();
@@ -263,7 +281,7 @@ pybind11::arg("frames") = ry::I_StringA()
 .def("setFrameState", [](ry::Config& self, const pybind11::array& X, const ry::I_StringA& frames, int verb) {
   arr _X = numpy2arr(X);
   _X.reshape(_X.N/7, 7);
-  self.set()->setFrameState(_X, I_conv(frames), true, 1);
+  self.set()->setFrameState(_X, I_conv(frames), true, verb);
 },
 "set the frame state, optionally only for a subset of frames specified as list of frame names. \
 By default this also computes and sets the consistent joint state based on the relative poses.\
