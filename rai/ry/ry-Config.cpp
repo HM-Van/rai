@@ -460,12 +460,14 @@ pybind11::arg("timePerPhase")=5.,
 pybind11::arg("useSwift")
     )
 
-.def("lgp", [](ry::Config& self, const std::string& folFileName) {
+.def("lgp", [](ry::Config& self, const std::string& folFileName, bool print) {
   ry::RyLGP_Tree lgp;
-  lgp.lgp = make_shared<LGP_Tree_Thread>(self.get(), folFileName.c_str());
+  lgp.lgp = make_shared<LGP_Tree_Thread>(self.get(), folFileName.c_str(), print);
   return lgp;
 },
-"create an LGP solver"
+"create an LGP solver",
+pybind11::arg("folFileName"),
+pybind11::arg("print")=true
     )
 
 .def("bullet", [](ry::Config& self) {

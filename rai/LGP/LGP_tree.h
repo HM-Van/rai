@@ -68,7 +68,7 @@ struct LGP_Tree : GLDrawer {
 
   //high-level
   LGP_Tree();
-  LGP_Tree(const rai::Configuration& _kin, const char* folFileName="fol.g");
+  LGP_Tree(const rai::Configuration& _kin, const char* folFileName="fol.g", bool print=true);
   LGP_Tree(const rai::Configuration& _kin, const FOL_World& _fol);
   ~LGP_Tree();
 
@@ -119,8 +119,8 @@ struct LGP_Tree : GLDrawer {
 };
 
 struct LGP_Tree_Thread : LGP_Tree, Thread {
-  LGP_Tree_Thread(const rai::Configuration& _kin, const char* folFileName="fol.g")
-    : LGP_Tree(_kin, folFileName), Thread("LGP_Tree", -1) {}
+  LGP_Tree_Thread(const rai::Configuration& _kin, const char* folFileName="fol.g", bool print=true)
+    : LGP_Tree(_kin, folFileName, print), Thread("LGP_Tree", -1) {}
 
   void open() { LGP_Tree::init(); }
   void step() { LGP_Tree::step(); }

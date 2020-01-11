@@ -119,12 +119,12 @@ LGP_Tree::LGP_Tree()
   cameraFocus = rai::getParameter<arr>("LGP/cameraFocus", {});
 }
 
-LGP_Tree::LGP_Tree(const rai::Configuration& _kin, const char* folFileName) : LGP_Tree() {
+LGP_Tree::LGP_Tree(const rai::Configuration& _kin, const char* folFileName, bool print) : LGP_Tree() {
   kin.copy(_kin);
   if(collisions) kin.swift(); //initialize swift in root model (SwiftInterface is reference by all child models)
   fol.init(folFileName);
   initFolStateFromKin(fol, kin);
-  if(verbose>0) cout <<"INITIAL LOGIC STATE = " <<*fol.start_state <<endl;
+  if(verbose>0 && print) cout <<"INITIAL LOGIC STATE = " <<*fol.start_state <<endl;
   finalGeometryObjectives.setModel(kin);
   finalGeometryObjectives.setTiming(1., 1, 1., 1);
   root = new LGP_Node(this, BD_max);
