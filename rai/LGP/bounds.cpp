@@ -72,8 +72,6 @@ void skeleton2Bound(KOMO& komo, BoundType boundType, const Skeleton& S,
         cout <<"POSE skeleton:" <<endl;
         writeSkeleton(cout, finalS, getSwitchesFromSkeleton(finalS));
       }
-      writeSkeleton(cout, finalS, getSwitchesFromSkeleton(finalS));
-
       komo.setModel(startKinematics, collisions);
       komo.setTiming(optHorizon, 1, 10., 1);
 

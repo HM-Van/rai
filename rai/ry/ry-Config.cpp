@@ -206,6 +206,7 @@ pybind11::arg("joints") = ry::I_StringA()
           rai::Vector tmpVec = f->ensure_X().pos - baseVec;
           X[i].p[0] = tmpVec.radius();
           X[i].p[1] = tmpVec.phi();
+          X[i].p[2] = f->ensure_X().pos.x;
           i=i+1;
         }
     }
