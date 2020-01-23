@@ -195,7 +195,7 @@ pybind11::arg("joints") = ry::I_StringA()
   } )
 
   .def("getfeatures2DLogical", [](ry::Config& self, const ry::I_StringA& frames, int size, const ry::I_StringA& base){
-    arr X(size,2); int i=0;
+    arr X(size,3); int i=0;
     auto Kget = self.get();
     rai::Frame *f = Kget->getFrameByName(base[0].c_str(), true);
     rai::Vector baseVec = f->ensure_X().pos;
