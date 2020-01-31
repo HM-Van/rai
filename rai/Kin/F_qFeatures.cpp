@@ -80,6 +80,15 @@ void F_qItself::phi(arr& q, arr& J, const rai::Configuration& G) {
         } else {
           rai::Frame* a = G.frames.elem(selectedFrames(i, 0));
           rai::Frame* b = G.frames.elem(selectedFrames(i, 1));
+
+          //PROBLEM IS HERE: was added to skip joint, causes other problems
+          /*
+          if((a->name=="red" or a->name=="blue" or a->name=="green") and(b->name=="pr2L" or b->name=="pr2R")){         
+            //std::cout << a->parent->name <<std::endl;
+            if (a->parent->name != b->name){
+              continue;
+            }
+          }*/
           if(a->parent==b) j=a->joint;
           else if(b->parent==a) { j=b->joint; flipSign=true; }
           else HALT("a and b are not linked");
@@ -132,6 +141,7 @@ void F_qItself::phi(arr& y, arr& J, const ConfigurationL& Ktuple) {
   uint qN=q_bar(0).N;
   for(uint i=0; i<=k; i++) if(q_bar(i).N!=qN) { handleSwitches=true; break; }
   if(handleSwitches) { //when bodies are selected, switches don't have to be handled
+    //PROBLEM IS HERE : error if joints are skipped, see fcts phi and dim_phi
     CHECK(!selectedFrames.nd, "doesn't work for this...")
     uint nFrames = Ktuple(offset)->frames.N;
     JointL jointMatchLists(k+1, nFrames); //for each joint of [0], find if the others have it
@@ -210,9 +220,18 @@ uint F_qItself::dim_phi(const rai::Configuration& G) {
       } else {
         rai::Frame* a = G.frames.elem(selectedFrames(i, 0));
         rai::Frame* b = G.frames.elem(selectedFrames(i, 1));
+
+        //PROBLEM IS HERE: was added to skip joint, causes other problems
+        /*
+        if((a->name=="red" or a->name=="blue" or a->name=="green") and(b->name=="pr2L" or b->name=="pr2R")){         
+          if (a->parent->name != b->name){
+            continue;
+            }
+        }*/
+
         if(a->parent==b) j=a->joint;
         else if(b->parent==a) j=b->joint;
-        else HALT("a and b are not linked");
+        else {std::cout << a->name <<"\t" << b->name <<"\t" << a->parent->name <<std::endl; HALT("a and b are not linked")};
         CHECK(j, "");
       }
       n += j->qDim();

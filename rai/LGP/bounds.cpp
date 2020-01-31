@@ -145,6 +145,7 @@ void skeleton2Bound(KOMO& komo, BoundType boundType, const Skeleton& S,
 #endif
 
       komo.setSkeleton(S);
+      //writeSkeleton(cout, S, getSwitchesFromSkeleton(S));
 
       if(collisions) komo.add_collision(true, 0., 1e1);
 
@@ -152,16 +153,8 @@ void skeleton2Bound(KOMO& komo, BoundType boundType, const Skeleton& S,
       //      cout <<komo.getPath_times() <<endl;
     } break;
     case BD_pathStep:{
-       //-- grep only the latest entries in the skeleton
-      /*
-      Skeleton finalS;
-      for(const SkeletonEntry& s:S)if(s.phase0>=maxPhase || s.phase1>=maxPhase-1){
-        finalS.append(s);
-        finalS.last().phase0 -= maxPhase-1.;
-        finalS.last().phase1 -= maxPhase-1.;
-
-        if(finalS.last().phase0<0){finalS.last().phase0=0;}
-      }*/
+      //NEW CODE
+       //PROBLEM IS HERE ?
 
       double optHorizon=maxPhase;
       if(optHorizon<1.) optHorizon=maxPhase=1.;
@@ -170,7 +163,7 @@ void skeleton2Bound(KOMO& komo, BoundType boundType, const Skeleton& S,
       //-- remove non-switches
       Skeleton finalS;
       for(const SkeletonEntry& s:S) {
-        if(/*modes.contains(s.symbol) ||*/ s.phase0>=maxPhase) {
+        if(modes.contains(s.symbol) || s.phase0>=maxPhase) {
           SkeletonEntry& fs = finalS.append(s);
           fs.phase0 -= maxPhase-optHorizon;
           fs.phase1 -= maxPhase-optHorizon;
@@ -182,10 +175,11 @@ void skeleton2Bound(KOMO& komo, BoundType boundType, const Skeleton& S,
       writeSkeleton(cout, finalS, getSwitchesFromSkeleton(finalS));
 
       komo.setModel(effKinematics, collisions);
+
       uint stepsPerPhase = rai::getParameter<uint>("LGP/stepsPerPhase", 10);
       uint pathOrder = rai::getParameter<uint>("LGP/pathOrder", 2);
       //komo.setTiming(maxPhase+.5, stepsPerPhase, 10., pathOrder);
-      komo.setTiming(optHorizon+.5, stepsPerPhase, 10., pathOrder);
+      komo.setTiming(optHorizon, stepsPerPhase, 10., pathOrder);
       komo.animateOptimization = 0;
 
       komo.setSquaredQuaternionNorms();

@@ -112,8 +112,11 @@ void LGP_Node::computeEndKinematicsPath(){
   tmp.setModel(startKinematics, false);
   uint stepsPerPhase = rai::getParameter<uint>("LGP/stepsPerPhase", 10);
   uint pathOrder = rai::getParameter<uint>("LGP/pathOrder", 2);
-  //double maxPhase=0;
-  //for(const SkeletonEntry& s:S) if(s.phase1>maxPhase) maxPhase=s.phase1;
+  double maxPhase=0;
+  for(const SkeletonEntry& s:S) {
+    if(s.phase0>maxPhase) maxPhase=s.phase0;
+    if(s.phase1>maxPhase) maxPhase=s.phase1;
+  }
   tmp.setTiming(1+.5, stepsPerPhase, 10., pathOrder);
   tmp.setSkeleton(S);
 //  tmp.reportProblem();
@@ -166,8 +169,8 @@ void LGP_Node::optBound(BoundType bound, bool collisions, int verbose) {
   if(bound==BD_pose && parent) {
     if(!parent->effKinematics.q.N) parent->computeEndKinematics();
   }
-  if(bound==BD_pathStep && parent){
-    if(!parent->effKinematicsPath.q.N) parent->computeEndKinematics();
+  if(bound==BD_pathStep && parent){ //NEWCODE
+    if(!parent->effKinematicsPath.q.N) parent->computeEndKinematicsPath();
   }
   arrA waypoints;
   if(bound==BD_seqPath || bound==BD_seqVelPath) {
@@ -175,7 +178,7 @@ void LGP_Node::optBound(BoundType bound, bool collisions, int verbose) {
     waypoints = komoProblem(BD_seq)->getPath_q();
   }
 
-  if(bound==BD_pathStep){
+  if(bound==BD_pathStep){ //NEW CODE
     skeleton2Bound(komo, bound, S,
                  startKinematics, (parent?parent->effKinematicsPath:startKinematics),
                  collisions,
@@ -261,8 +264,8 @@ void LGP_Node::optBound(BoundType bound, bool collisions, int verbose) {
     effKinematics.reset_q();
     effKinematics.ensure_q();
     DEBUG(effKinematics.checkConsistency();)
-  } else if (bound==BD_pathStep){
-    if(parent) cost_here += cost(BD_symbolic); //account for the symbolic costs
+  } else if (bound==BD_pathStep){ //NEW CODE
+    //if(parent) cost_here += cost(BD_symbolic); //account for the symbolic costs
 
     std::cout <<"Prev Framestate dim: " <<effKinematicsPath.getFrameState().N <<'\t';
 

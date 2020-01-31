@@ -1,0 +1,37 @@
+double optHorizon=maxPhase;
+      if(optHorizon<1.) optHorizon=maxPhase=1.;
+      if(optHorizon>2.) optHorizon=2.;
+
+      //-- remove non-switches
+      Skeleton finalS;
+      for(const SkeletonEntry& s:S) {
+        if(modes.contains(s.symbol)
+            || s.phase0>=maxPhase) {
+          SkeletonEntry& fs = finalS.append(s);
+          fs.phase0 -= maxPhase-optHorizon;
+          fs.phase1 -= maxPhase-optHorizon;
+          if(fs.phase0<0.) fs.phase0=0.;
+          if(fs.phase1<0.) fs.phase1=0.;
+        }
+      }
+
+      if(komo.verbose>1) {
+        cout <<"POSE skeleton:" <<endl;
+        writeSkeleton(cout, finalS, getSwitchesFromSkeleton(finalS));
+      }
+      komo.setModel(startKinematics, collisions);
+      komo.setTiming(optHorizon, 1, 10., 1);
+
+      komo.setSquaredQuaternionNorms();
+#if 0
+      komo.setHoming(0., -1., 1e-2);
+      komo.setSquaredQVelocities(1., -1., 1e-1); //IMPORTANT: do not penalize transitions of from prefix to x_{0} -> x_{0} is 'loose'
+#else
+      komo.setSquaredQAccVelHoming(0, -1., 0., 1e-2, 1e-2);
+#endif
+
+      komo.setSkeleton(finalS, false);
+
+      if(collisions) komo.add_collision(false);
+
+      komo.reset();

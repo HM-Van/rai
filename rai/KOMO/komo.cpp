@@ -1457,6 +1457,7 @@ void KOMO::run(const OptOptions options) {
 #if 1
 //    ModGraphProblem selG(graph_problem);
 //    Conv_Graph_ConstrainedProblem C(selG);
+    //PROBLEM IS HERE
     Conv_Graph_ConstrainedProblem C(graph_problem, logFile);
     OptConstrained _opt(x, dual, C, rai::MAX(verbose-2, 0), options, logFile);
 //    OptPrimalDual _opt(x, dual, C, rai::MAX(verbose-2, 0));
@@ -2396,7 +2397,6 @@ void KOMO::Conv_KOMO_KOMOProblem::getStructure(uintA& variableDimensions, uintA&
       Objective* task = komo.objectives.elem(i);
       if(task->isActive(t)) {
         uint m = task->map->__dim_phi(komo.configurations({t, t+komo.k_order})); //dimensionality of this task
-
         if(!!featureTimes) featureTimes.append(t, m); //consts<uint>(t, m));
         if(!!featureTypes) featureTypes.append(task->type, m); //consts<ObjectiveType>(task->type, m));
         for(uint j=0; j<m; j++)  featureNames.append(STRING(task->name <<'_'<<j));
@@ -2553,6 +2553,7 @@ void KOMO::Conv_KOMO_DenseProblem::getDimPhi() {
 }
 
 void KOMO::Conv_KOMO_GraphProblem::getStructure(uintA& variableDimensions, intAA& featureVariables, ObjectiveTypeA& featureTypes) {
+  //PROBMLEM IS HERE
   CHECK_EQ(komo.configurations.N, komo.k_order+komo.T, "configurations are not setup yet: use komo.reset()");
   if(!!variableDimensions) {
 #if 1
@@ -2576,6 +2577,8 @@ void KOMO::Conv_KOMO_GraphProblem::getStructure(uintA& variableDimensions, intAA
     CHECK_EQ(ob->configs.nd, 2, "in sparse mode, vars need to be tuples of variables");
     for(uint l=0; l<ob->configs.d0; l++) {
       ConfigurationL Ktuple = komo.configurations.sub(convert<uint, int>(ob->configs[l]+(int)komo.k_order));
+      //PROBLEM IS HERE LOOP
+      //ob->write(std::cout);
       uint m = ob->map->__dim_phi(Ktuple); //dimensionality of this task
       if(!!featureVariables) featureVariables.append(ob->configs[l], m);
       if(!!featureTypes) featureTypes.append(ob->type, m);

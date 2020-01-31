@@ -36,6 +36,7 @@ bool GraphProblem::checkStructure(const arr& x) {
 }
 
 Conv_Graph_ConstrainedProblem::Conv_Graph_ConstrainedProblem(GraphProblem& _G,  ostream* _log) : G(_G), logFile(_log) {
+  //PROBLEM IS HERE
   G.getStructure(variableDimensions, featureVariables, featureTypes);
   varDimIntegral = integral(variableDimensions);
 

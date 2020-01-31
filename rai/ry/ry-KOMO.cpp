@@ -148,6 +148,13 @@ pybind11::arg("object"))
   return pybind11::array(X.dim(), X.p);
 })
 
+.def("getKFromKomo", [](ry::RyKOMO& self, ry::Config& C2, int t) {
+  rai::Configuration K2(*self.komo->configurations(t+self.komo->k_order));
+  return C2.set()->copy(K2);
+})
+
+
+
 .def("get7dLogical", [](ry::RyKOMO& self, int t, const ry::I_StringA& frames, int size){
     arr X(size,7); int i=0;
     for(auto frame: frames){
