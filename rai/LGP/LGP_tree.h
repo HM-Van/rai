@@ -11,6 +11,8 @@
 #include "LGP_node.h"
 #include <Core/thread.h>
 
+#include <ctime>
+
 struct KinPathViewer;
 struct LGP_Tree;
 typedef rai::Array<rai::Transformation> TransformationA;

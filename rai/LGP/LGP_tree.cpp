@@ -560,7 +560,10 @@ void LGP_Tree::reportEffectiveJoints() {
   focusNode->komoProblem.last()->reportEffectiveJoints();
 }
 
+int begintime=0;
 void LGP_Tree::step() {
+  if(begintime==0){begintime=time(NULL);}
+
   expandNext();
 
   uint numSol = fringe_solved.N;
@@ -573,7 +576,10 @@ void LGP_Tree::step() {
 
   if(fringe_solved.N>numSol) {
     if(verbose>0) cout <<"NEW SOLUTION FOUND! " <<fringe_solved.last()->getTreePathString() <<endl;
-    else{cout <<"\"" <<fringe_solved.last()->getTreePathString() <<"\"," <<endl;}
+    else{
+          int endtime= time(NULL);
+          cout <<"\"" <<fringe_solved.last()->getTreePathString() <<"\","<< endtime-begintime <<endl;
+          }
     solutions.set()->append(new LGP_Tree_SolutionData(*this, fringe_solved.last()));
     solutions.set()->sort(sortComp2);
   }
@@ -633,6 +639,7 @@ void LGP_Tree::init() {
     initDisplay();
     updateDisplay();
   }
+  //begintime=time(NULL);
 }
 
 void LGP_Tree::run(uint steps) {
@@ -640,7 +647,6 @@ void LGP_Tree::run(uint steps) {
 
   uint stopSol = rai::getParameter<uint>("LGP/stopSol", 12);
   double stopTime = rai::getParameter<double>("LGP/stopTime", 400.);
-
   for(uint k=0; k<steps; k++) {
     step();
 

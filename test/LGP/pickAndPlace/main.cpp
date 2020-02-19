@@ -52,9 +52,9 @@ void solve(){
   K.optimizeTree();
 
   LGP_Tree lgp(K, "fol-pnp-switch.g");
-  lgp.fol.addTerminalRule("(on tray obj0) (on tray obj1) (on tray obj2)");
+  lgp.fol.addTerminalRule("(on tray obj0) (on tray obj1) (on tray obj2)"); // (on tray obj3) fails with this
   lgp.displayBound = BD_seqPath;
-  //lgp.verbose=2;
+  lgp.verbose=0;
 
   lgp.fol.writePDDLfiles("z");
 
