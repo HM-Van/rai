@@ -100,12 +100,14 @@ void initFolStateFromKin(FOL_World& L, const rai::Configuration& K) {
     }
 }
 
-LGP_Tree::LGP_Tree()
+LGP_Tree::LGP_Tree(int verb)
   : verbose(2), numSteps(0) {
   dataPath <<"z." <<rai::date2() <<"/";
   dataPath = rai::getParameter<rai::String>("LGP_dataPath", dataPath);
-  rai::system(STRING("mkdir -p " <<dataPath));
-  rai::system(STRING("rm -Rf " <<dataPath <<"vid  &&  rm -f " <<dataPath <<"*"));
+  if(verb>0){
+    rai::system(STRING("mkdir -p " <<dataPath));
+    rai::system(STRING("rm -Rf " <<dataPath <<"vid  &&  rm -f " <<dataPath <<"*"));
+  }
 
   OptLGPDataPath = dataPath;
   if(!filNodes) filNodes = new ofstream(dataPath + "nodes");
@@ -119,7 +121,7 @@ LGP_Tree::LGP_Tree()
   cameraFocus = rai::getParameter<arr>("LGP/cameraFocus", {});
 }
 
-LGP_Tree::LGP_Tree(const rai::Configuration& _kin, const char* folFileName, bool print) : LGP_Tree() {
+LGP_Tree::LGP_Tree(const rai::Configuration& _kin, const char* folFileName, bool print, int verb) : LGP_Tree(verb) {
   kin.copy(_kin);
   if(collisions) kin.swift(); //initialize swift in root model (SwiftInterface is reference by all child models)
   fol.init(folFileName);

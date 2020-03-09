@@ -90,9 +90,10 @@ pybind11::arg("view")=true)
   return ry::RyKOMO(self.lgp->focusNode->komoProblem(bound));
 })
 
-.def("addTerminalRule", [](ry::RyLGP_Tree& self, const char* precondition) {
-  self.lgp->fol.addTerminalRule(precondition);
-})
+.def("addTerminalRule", [](ry::RyLGP_Tree& self, const char* precondition, int verbose) {
+  self.lgp->fol.addTerminalRule(precondition, verbose);
+}, "", pybind11::arg("precondition"),
+pybind11::arg("verbose")=1)
 
 .def("run", [](ry::RyLGP_Tree& self, int verbose) {
   self.lgp->displayBound = BD_seqPath;

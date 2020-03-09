@@ -585,8 +585,7 @@ void FOL_World::addObject(const char* name) {
   addFact({"object", name});
 }
 
-void FOL_World::addTerminalRule(const char* literals) {
-  //first create a new rule
+void FOL_World::addTerminalRule(const char* literals, int verbose) {  //first create a new rule
   Graph& rule = KB.newSubgraph({"Rule"}, {});
   worldRules.append(rule.isNodeOfGraph);
   Graph& preconditions = rule.newSubgraph({}, {});
@@ -594,7 +593,8 @@ void FOL_World::addTerminalRule(const char* literals) {
   effect.newNode<bool>({}, {Quit_keyword}, true); //adds the (QUIT) to the effect
 
   preconditions.read(STRING(literals));
-  cout <<"CREATED TERMINATION RULE:" <<*rule.isNodeOfGraph <<endl;
+  if(verbose>0)
+    cout <<"CREATED TERMINATION RULE:" <<*rule.isNodeOfGraph <<endl;
 }
 
 void FOL_World::addTerminalRule(const StringAA& literals) {

@@ -129,7 +129,7 @@ struct FOL_World : MCTS_Environment {
     for(const rai::String& s:symbols) parents.append(KB[s]);
     start_state->newNode<T>({}, parents, x);
   }
-  void addTerminalRule(const char* literals);
+  void addTerminalRule(const char* literals, int verbose);
   void addTerminalRule(const StringAA& literals);
   void addDecisionSequence(std::istream& is);
 
