@@ -61,6 +61,10 @@ pybind11::arg("verbose")=true)
   return self.lgp->focusNode->feasible(bound);
 } )
 
+.def("returnConstraint", [](ry::RyLGP_Tree& self, BoundType bound){
+  return self.lgp->focusNode->constraints(bound);
+} )
+
 .def("reset", [](ry::RyLGP_Tree& self){
   return self.lgp->focusNode->resetData();
 } )
@@ -73,8 +77,8 @@ pybind11::arg("verbose")=true)
   self.lgp->displayTreeUsingDot();
 })
 
-.def("optBound", [](ry::RyLGP_Tree& self, BoundType bound, bool collisions, bool view) {
-  self.lgp->focusNode->optBound(bound, collisions);
+.def("optBound", [](ry::RyLGP_Tree& self, BoundType bound, bool collisions, bool view, double initnoise) {
+  self.lgp->focusNode->optBound(bound, collisions, -1, initnoise);
   if(view){
     if(bound == BD_seqPath) {
       self.lgp->focusNode->komoProblem(bound)->displayTrajectory(.02, false, false);
@@ -84,7 +88,8 @@ pybind11::arg("verbose")=true)
   }
 }, "", pybind11::arg("bound"),
 pybind11::arg("collisions"),
-pybind11::arg("view")=true)
+pybind11::arg("view")=true,
+pybind11::arg("initnoise")=0.01)
 
 .def("getKOMOforBound", [](ry::RyLGP_Tree& self, BoundType bound) {
   return ry::RyKOMO(self.lgp->focusNode->komoProblem(bound));

@@ -32,7 +32,7 @@ rai::Array<SkeletonSymbol> modes = { SY_stable, SY_stableOn, SY_dynamic, SY_dyna
 void skeleton2Bound(KOMO& komo, BoundType boundType, const Skeleton& S,
                     const rai::Configuration& startKinematics,
                     const rai::Configuration& effKinematics,
-                    bool collisions, const arrA& waypoints) {
+                    bool collisions, const arrA& waypoints, double initnoise) {
   double maxPhase=0;
   for(const SkeletonEntry& s:S) {
     if(s.phase0>maxPhase) maxPhase=s.phase0;
@@ -124,7 +124,9 @@ void skeleton2Bound(KOMO& komo, BoundType boundType, const Skeleton& S,
 
       if(collisions) komo.add_collision(true);
 
-      komo.reset();
+      //std::cout<<"\n------ Noise for seq optimization = "<<initnoise<<" ------\n";
+
+      komo.reset(initnoise);
 //      komo.setPairedTimes();
       //      cout <<komo.getPath_times() <<endl;
     } break;
@@ -228,7 +230,9 @@ void skeleton2Bound(KOMO& komo, BoundType boundType, const Skeleton& S,
 
       if(collisions) komo.add_collision(true, 0., 1e1);
 
-      komo.reset();
+      //std::cout<<"\n------ Noise for seqPath optimization = "<<initnoise<<" ------\n";
+
+      komo.reset(initnoise);
       komo.initWithWaypoints(waypoints, waypointsStepsPerPhase);
       //      cout <<komo.getPath_times() <<endl;
     } break;

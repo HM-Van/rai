@@ -140,7 +140,7 @@ void LGP_Node::computeEndKinematics() {
   for(rai::KinematicSwitch* s : tmp.switches) s->apply(effKinematics);
 }
 
-void LGP_Node::optBound(BoundType bound, bool collisions, int verbose) {
+void LGP_Node::optBound(BoundType bound, bool collisions, int verbose, double initnoise) {
   if(komoProblem(bound)) komoProblem(bound).reset();
   komoProblem(bound) = std::make_shared<KOMO>();
   KOMO& komo(*komoProblem(bound));
@@ -182,13 +182,13 @@ void LGP_Node::optBound(BoundType bound, bool collisions, int verbose) {
     skeleton2Bound(komo, bound, S,
                  startKinematics, (parent?parent->effKinematicsPath:startKinematics),
                  collisions,
-                 waypoints);
+                 waypoints, initnoise);
   }
   else{
     skeleton2Bound(komo, bound, S,
                   startKinematics, (parent?parent->effKinematics:startKinematics),
                   collisions,
-                  waypoints);
+                  waypoints, initnoise);
   }
 
   for(Objective* o:tree->finalGeometryObjectives.objectives) {

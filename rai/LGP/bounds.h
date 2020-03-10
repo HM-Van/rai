@@ -28,7 +28,8 @@ void skeleton2Bound(KOMO& komo,
                     const rai::Configuration& startKinematics,
                     const rai::Configuration& parentEffKinematics,
                     bool collisions,
-                    const arrA& waypoints= {}
+                    const arrA& waypoints= {},
+                    double initnoise=0.01
                    );
 
 struct SubCG {
