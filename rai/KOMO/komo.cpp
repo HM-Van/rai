@@ -1750,7 +1750,7 @@ bool KOMO::displayTrajectory(double delay, bool watch, bool overlayPaths, const 
   allFrames.setStraightPerm(configurations.first()->frames.N);
   arr X = getPath_frames(allFrames);
   DrawPaths drawX(X);
-
+  
   for(int t=-(int)k_order; t<(int)T; t++) {
     rai::Configuration& K = *configurations(t+k_order);
     timetag.clear() <<tag <<" (config:" <<t <<'/' <<T <<"  s:" <<conv_step2time(t, stepsPerPhase) <<" tau:" <<K.frames.first()->tau <<')';
@@ -1768,6 +1768,7 @@ bool KOMO::displayTrajectory(double delay, bool watch, bool overlayPaths, const 
       gl->update(timetag.p);
       if(delay) rai::wait(delay * K.frames.first()->tau);
     }
+    if(t==-(int)k_order) rai::wait(2.0);
     if(saveVideoPath) write_ppm(gl->captureImage, STRING(saveVideoPath<<std::setw(4)<<std::setfill('0')<<t<<".ppm"));
   }
   if(watch) {
