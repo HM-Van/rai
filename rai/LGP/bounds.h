@@ -8,7 +8,66 @@
 
 #pragma once
 
-#include <KOMO/komo.h>
+#include "../KOMO/komo.h"
+#include "compute.h"
+
+//===========================================================================
+
+struct KOMO_based_bound : ComputeObject {
+  ptr<KOMO> komo;
+
+  KOMO_based_bound(ptr<KOMO>& komo) : komo(komo) {}
+
+  virtual ptr<ComputeReport> run(double timeBudget=-1.){NIY}
+};
+
+//===========================================================================
+
+struct PoseBound : KOMO_based_bound {
+  //the constructor creates the komo problem -- absorbes what previously was defined in skeleton2Bound!
+  PoseBound(ptr<KOMO>& komo, //TODO: eventually remove this!
+            const Skeleton& S,
+            const rai::Configuration& startKinematics,
+            bool collisions, double initnoise);
+};
+
+//===========================================================================
+
+struct SeqBound : KOMO_based_bound {
+  SeqBound(ptr<KOMO>& komo, //TODO: eventually remove this!
+            const Skeleton& S,
+            const rai::Configuration& startKinematics,
+            bool collisions, double initnoise);
+};
+
+//===========================================================================
+
+struct PathBound : KOMO_based_bound {
+  PathBound(ptr<KOMO>& komo, //TODO: eventually remove this!
+            const Skeleton& S,
+            const rai::Configuration& startKinematics,
+            bool collisions, double initnoise);
+};
+
+//===========================================================================
+
+struct SeqPathBound : KOMO_based_bound {
+  SeqPathBound(ptr<KOMO>& komo, //TODO: eventually remove this!
+               const Skeleton& S,
+               const rai::Configuration& startKinematics,
+               bool collisions, const arrA& waypoints, double initnoise);
+};
+
+//===========================================================================
+
+struct SeqVelPathBound : KOMO_based_bound {
+  SeqVelPathBound(ptr<KOMO>& komo, //TODO: eventually remove this!
+                  const Skeleton& S,
+                  const rai::Configuration& startKinematics,
+                  bool collisions, const arrA& waypoints, double initnoise);
+};
+
+//===========================================================================
 
 enum BoundType { BD_all=-1,
                  BD_symbolic=0,
@@ -22,7 +81,7 @@ enum BoundType { BD_all=-1,
                  BD_max
                };
 
-void skeleton2Bound(KOMO& komo,
+ptr<ComputeObject> skeleton2Bound(ptr<KOMO>& komo,
                     BoundType boundType,
                     const Skeleton& S,
                     const rai::Configuration& startKinematics,
@@ -33,22 +92,22 @@ void skeleton2Bound(KOMO& komo,
                    );
 
 struct SubCG {
-  NodeL frames;
-  NodeL constraints;
+  rai::NodeL frames;
+  rai::NodeL constraints;
   uint maxT;
   int merged=-1;
   void write(ostream& os) const {
     cout <<"*** subproblem (merged:" <<merged <<")" <<endl;
     cout <<"  frames:";
-    for(Node* f:frames) cout <<' ' <<*f;
+    for(rai::Node* f:frames) cout <<' ' <<*f;
     cout <<"\n  constraints:";
-    for(Node* c:constraints) cout <<"\n    " <<*c;
+    for(rai::Node* c:constraints) cout <<"\n    " <<*c;
     cout <<endl;
   }
 };
 stdOutPipe(SubCG)
 struct CG {
-  Graph G;
+  rai::Graph G;
   rai::Array<std::shared_ptr<SubCG>> subproblems;
 };
 

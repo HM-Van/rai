@@ -10,7 +10,7 @@
 
 #include "mesh.h"
 
-struct PairCollision : GLDrawer {
+struct PairCollision : GLDrawer, NonCopyable {
   //INPUTS
   const rai::Mesh* mesh1=0;
   const rai::Mesh* mesh2=0;
@@ -30,7 +30,6 @@ struct PairCollision : GLDrawer {
 
   arr poly, polyNorm;
 
-  PairCollision() {}
   PairCollision(const rai::Mesh& mesh1, const rai::Mesh& mesh2,
                 const rai::Transformation& t1, const rai::Transformation& t2,
                 double rad1=0., double rad2=0.);
@@ -65,8 +64,10 @@ struct PairCollision : GLDrawer {
   void computeSupportPolygon();
 
  private:
-  double libccd_MPR(const rai::Mesh& m1, const rai::Mesh& m2); //calls ccdMPRPenetration of libccd
-  double GJK_sqrDistance(); //gjk_distance of libGJK
+  //wrappers of external libs
+  enum CCDmethod { _ccdGJKIntersect,  _ccdGJKSeparate, _ccdGJKPenetration, _ccdMPRIntersect, _ccdMPRPenetration };
+  void libccd(rai::Mesh& m1, rai::Mesh& m2, CCDmethod method); //calls ccdMPRPenetration of libccd
+  void GJK_sqrDistance(); //gjk_distance of libGJK
   bool simplexType(uint i, uint j) { return simplex1.d0==i && simplex2.d0==j; } //helper
 };
 

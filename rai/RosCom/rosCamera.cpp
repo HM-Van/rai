@@ -6,9 +6,8 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-#include <RosCom/roscom.h>
-
 #include "rosCamera.h"
+#include "../RosCom/roscom.h"
 
 #ifdef RAI_ROS
 
@@ -36,13 +35,15 @@ RosCamera::RosCamera(Var<byteA>& _rgb, Var<floatA> _depth,
   : rgb(_rgb), depth(_depth) {
   if(rgb_topic) rgb.name() = rgb_topic;
   if(depth_topic) depth.name() = depth_topic;
-  s = make_shared<sRosCamera>(rosNodeName, rgb, depth, useUint);
+  s = make_unique<sRosCamera>(rosNodeName, rgb, depth, useUint);
 }
 
 RosCamera::~RosCamera() {
 }
 
 #else //RAI_ROS
+
+struct sRosCamera {};
 
 RosCamera::RosCamera(Var<byteA>& _rgb, Var<floatA> _depth,
                      const char* rosNodeName,

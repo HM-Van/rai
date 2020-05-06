@@ -6,15 +6,9 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-/// @file
-/// @ingroup group_Core
-/// @addtogroup group_Core
-/// @{
+#pragma once
 
-#ifndef RAI_ann_h
-#define RAI_ann_h
-
-#include <Core/array.h>
+#include "../Core/array.h"
 
 //===========================================================================
 //
@@ -22,7 +16,7 @@
 //
 
 struct ANN {
-  struct sANN* s;
+  unique_ptr<struct sANN> self;
 
   arr X;       //the data set for which a ANN tree is build
   uint bufferSize; //a tree is only rebuild if there are more than 'buffer' new points appended [default: 20]
@@ -41,7 +35,3 @@ struct ANN {
   void getkNN(arr& sqrDists, intA& idx, const arr& x, uint k, double eps=.0, bool verbose=false);
   void getkNN(arr& X, const arr& x, uint k, double eps=.0, bool verbose=false);
 };
-
-#endif
-
-/// @} //end group

@@ -8,7 +8,7 @@
 
 #include "F_dynamics.h"
 #include "frame.h"
-#include "contact.h"
+#include "forceExchange.h"
 #include "TM_default.h"
 #include "TM_angVel.h"
 #include "F_PairCollision.h"
@@ -268,7 +268,7 @@ F_StaticStability::F_StaticStability(const rai::Configuration& G, const char* iS
 FrameL getShapesAbove(rai::Frame* a) {
   FrameL aboves;
   if(a->shape) aboves.append(a);
-  for(rai::Frame* b:a->parentOf) aboves.append(getShapesAbove(b));
+  for(rai::Frame* b:a->children) aboves.append(getShapesAbove(b));
   return aboves;
 }
 

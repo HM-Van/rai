@@ -1,10 +1,10 @@
 #pragma once
 
-#include <Core/thread.h>
+#include "../Core/thread.h"
 
 namespace rai{
-    struct Configuration;
-    struct Frame;
+  struct Configuration;
+  struct Frame;
 }
 
 namespace ry{

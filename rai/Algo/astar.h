@@ -7,20 +7,21 @@
     --------------------------------------------------------------  */
 
 #pragma once
-#include <Core/graph.h>
-#include <Algo/priorityQueue.h>
+
+#include "priorityQueue.h"
+#include "../Core/graph.h"
 
 //===========================================================================
 
 template<class NodeType>
 struct AStarOnGraph {
-  Graph& G;
+  rai::Graph& G;
   NodeType* start, *goal;
   PriorityQueue<NodeType*> queue;
   rai::Array<NodeType*> solutions;
   uint iters=0;
 
-  AStarOnGraph(Graph& _G, NodeType* _start, NodeType* _goal)
+  AStarOnGraph(rai::Graph& _G, NodeType* _start, NodeType* _goal)
     :G(_G), start(_start), goal(_goal) {
     rai::Array<NodeType*>::memMove = true;
     start->astar_g = 0;

@@ -8,8 +8,8 @@
 
 #include "switch.h"
 #include "kin.h"
+#include "forceExchange.h"
 #include <climits>
-#include "contact.h"
 
 //===========================================================================
 
@@ -71,20 +71,24 @@ void rai::KinematicSwitch::setTimeOfApplication(double time, bool before, int st
   timeOfApplication = (time<0.?0:conv_time2step(time, stepsPerPhase))+(before?0:1);
 }
 
-void rai::KinematicSwitch::apply(Configuration& K) {
+rai::Frame* rai::KinematicSwitch::apply(Configuration& K) {
   Frame* from=nullptr, *to=nullptr;
   if(fromId!=-1) from=K.frames(fromId);
   if(toId!=-1) to=K.frames(toId);
+
+  CHECK(from!=to, "not allowed to link '" <<from->name <<"' to itself");
 
   if(symbol==SW_joint || symbol==SW_joint) {
     rai::Transformation orgX = to->ensure_X();
 
     //first find link frame above 'to', and make it a root
 #if 0 //THIS is the standard version that worked with pnp LGP tests - but is a problem for the crawler
-    rai::Frame* link = to->getUpwardLink(NoTransformation, false);
-    if(link->parent) link->unLink();
-#else //THIS is the version that works for the crawler; I guess the major difference is 'upward until part break' and 'flip frames'
+    to = to->getUpwardLink(NoTransformation, false);
+    if(to->parent) to->unLink();
+#elif 1 //THIS is the new STANDARD! (was the version that works for the crawler; works also for pnp LGP test - but not when picking link-shapes only!)
     K.reconfigureRoot(to, true);
+#else
+    if(to->parent) to->unLink();
 #endif
 
     //create a new joint
@@ -101,14 +105,18 @@ void rai::KinematicSwitch::apply(Configuration& K) {
     } else if(init==SWInit_copy) { //set Q to the current relative transform, modulo DOFs
       j->frame->Q = orgX / j->frame->parent->ensure_X(); //that's important for the initialization of x during the very first komo.setupConfigurations !!
       //cout <<j->frame->Q <<' ' <<j->frame->Q.rot.normalization() <<endl;
-      arr q = j->calc_q_from_Q(j->frame->Q);
-      j->frame->Q.setZero();
-      j->calc_Q_from_q(q, 0);
+      if(j->dim>0){
+        arr q = j->calc_q_from_Q(j->frame->Q);
+        j->frame->Q.setZero();
+        j->calc_Q_from_q(q, 0);
+      }
     } if(init==SWInit_random) { //random, modulo DOFs
       j->frame->Q.setRandom();
-      arr q = j->calc_q_from_Q(j->frame->Q);
-      j->frame->Q.setZero();
-      j->calc_Q_from_q(q, 0);
+      if(j->dim>0){
+        arr q = j->calc_q_from_Q(j->frame->Q);
+        j->frame->Q.setZero();
+        j->calc_Q_from_q(q, 0);
+      }
     }
     j->frame->_state_updateAfterTouchingQ();
 
@@ -118,7 +126,7 @@ void rai::KinematicSwitch::apply(Configuration& K) {
 //      static int i=0;
 //      FILE(STRING("z.switch_"<<i++<<".g")) <<K;
 //    }
-    return;
+    return j->frame;
   }
 
   if(symbol==SW_noJointLink) {
@@ -128,7 +136,7 @@ void rai::KinematicSwitch::apply(Configuration& K) {
     to->linkFrom(from, true);
 
     K.reset_q();
-    return;
+    return to;
   }
 
   if(symbol==makeDynamic) {
@@ -140,7 +148,7 @@ void rai::KinematicSwitch::apply(Configuration& K) {
     if(from->joint) {
       from->joint->H = 1e-1;
     }
-    return;
+    return from;
   }
 
   if(symbol==makeKinematic) {
@@ -153,25 +161,26 @@ void rai::KinematicSwitch::apply(Configuration& K) {
 //      from->joint->constrainToZeroVel=false;
 //      from->joint->H = 1e-1;
 //    }
-    return;
+    return from;
   }
 
   if(symbol==SW_addContact) {
     CHECK_EQ(jointType, JT_none, "");
-    new rai::Contact(*from, *to);
-    return;
+    new rai::ForceExchange(*from, *to);
+    return 0;
   }
 
   if(symbol==SW_delContact) {
     CHECK_EQ(jointType, JT_none, "");
-    rai::Contact* c = nullptr;
-    for(rai::Contact* cc:to->contacts) if(&cc->a==from || &cc->b==from) { c=cc; break; }
+    rai::ForceExchange* c = nullptr;
+    for(rai::ForceExchange* cc:to->forces) if(&cc->a==from || &cc->b==from) { c=cc; break; }
     if(!c) HALT("not found");
     delete c;
-    return;
+    return 0;
   }
 
   HALT("shouldn't be here!");
+  return 0;
 }
 
 rai::String rai::KinematicSwitch::shortTag(const rai::Configuration* G) const {
@@ -248,13 +257,13 @@ rai::KinematicSwitch* rai::KinematicSwitch::newSwitch(const rai::String& type, c
 //    CHECK_EQ(sw->symbol, rai::deleteJoint, "");
 //    rai::Body *b = fromShape->body;
 //    if(b->hasJoint()==1){
-////      CHECK_EQ(b->parentOf.N, 0, "");
+////      CHECK_EQ(b->children.N, 0, "");
 //      sw->toId = sw->fromId;
 //      sw->fromId = b->joint()->from->shapes.first()->index;
-//    }else if(b->parentOf.N==1){
+//    }else if(b->children.N==1){
 //      CHECK_EQ(b->hasJoint(), 0, "");
-//      sw->toId = b->parentOf(0)->from->shapes.first()->index;
-//    }else if(b->hasJoint()==0 && b->parentOf.N==0){
+//      sw->toId = b->children(0)->from->shapes.first()->index;
+//    }else if(b->hasJoint()==0 && b->children.N==0){
 //      RAI_MSG("No link to delete for shape '" <<ref1 <<"'");
 //      delete sw;
 //      return nullptr;

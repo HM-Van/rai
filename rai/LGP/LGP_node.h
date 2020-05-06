@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include <Kin/kin.h>
-#include <Logic/fol_mcts_world.h>
-#include <Logic/fol.h>
-#include <KOMO/komo.h>
 #include "bounds.h"
+#include "../Kin/kin.h"
+#include "../Logic/fol_mcts_world.h"
+#include "../Logic/fol.h"
+#include "../KOMO/komo.h"
 
 struct LGP_Node;
 typedef rai::Array<LGP_Node*> LGP_NodeL;
@@ -33,6 +33,7 @@ struct LGP_Node {
   LGP_Node* parent;
   struct LGP_Tree* tree=0;
   rai::Array<LGP_Node*> children;
+  rai::Array<ptr<ComputeObject>> computes;
   uint step;            ///< decision depth/step of this node
   double time;          ///< real time
   uint id;

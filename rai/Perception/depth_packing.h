@@ -8,10 +8,9 @@
 
 #pragma once
 
-#include <Core/thread.h>
+#include "../Core/thread.h"
 
 struct KinectDepthPacking : Thread {
-  struct sKinectDepthPacking* s;
   Var<uint16A> kinect_depth;
   Var<byteA> kinect_depthRgb;
   KinectDepthPacking() : Thread("KinectDepthPacking"), kinect_depth(this, true) {}

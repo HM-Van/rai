@@ -9,9 +9,9 @@
 #ifndef Core_module_h
 #define Core_module_h
 
-#include <Core/array.h>
-#include <Core/graph.h>
-#include <Core/thread.h>
+#include "../Core/array.h"
+#include "../Core/graph.h"
+#include "../Core/thread.h"
 
 struct Access;
 typedef Thread Module;
@@ -72,7 +72,7 @@ inline bool operator==(const Module&, const Module&) { return false; }
 
 #define REGISTER_MODULE(name) \
   RUN_ON_INIT_BEGIN(Decl_Module##_##name) \
-  registry()->newNode<std::shared_ptr<Type> >({rai::String("Decl_Module"), rai::String(#name)}, NodeL(), std::make_shared<Type_typed<name, void> >()); \
+  registry()->newNode<std::shared_ptr<Type> >({rai::String("Decl_Module"), rai::String(#name)}, NodeL(), make_shared<Type_typed<name, void> >()); \
   RUN_ON_INIT_END(Decl_Module##_##name)
 
 //===========================================================================

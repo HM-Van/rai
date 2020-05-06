@@ -6,34 +6,27 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-/// @file
-/// @ingroup group_ors
+#pragma once
 
-#ifndef RAI_ors_physx_h
-#define RAI_ors_physx_h
 #include "kin.h"
 
 namespace physx {
 class PxMaterial;
 }
 
-/**
- * @defgroup rai_interface_physx Interface to PhysX
- * @ingroup rai_interfaces
- * @{
- */
 struct PhysXInterface : GLDrawer {
-  struct PhysXInterface_self* self;
+  struct PhysXInterface_self* self=0;
 
-  PhysXInterface(const rai::Configuration& world, bool verbose=false);
+  PhysXInterface(const rai::Configuration& C, bool verbose=false);
   ~PhysXInterface();
 
   void step(double tau=.01);
 
   void pushKinematicStates(const FrameL& frames);
-  void pushFullState(const FrameL& frames, const arr& frameVelocities=NoArr, rai::Configuration* Kt_1=nullptr, rai::Configuration* Kt_2=nullptr, double tau=-1., bool onlyKinematic=false);
+  void pushFullState(const FrameL& frames, const arr& frameVelocities=NoArr, bool onlyKinematic=false);
   void pullDynamicStates(FrameL& frames, arr& frameVelocities=NoArr);
 
+  void changeObjectType(rai::Frame* f, int type);
   void setArticulatedBodiesKinematic(const rai::Configuration& C);
   void ShutdownPhysX();
 
@@ -43,7 +36,3 @@ struct PhysXInterface : GLDrawer {
   void addForce(rai::Vector& force, rai::Frame* b);
   void addForce(rai::Vector& force, rai::Frame* b, rai::Vector& pos);
 };
-
-#endif
-/// @}
-

@@ -7,7 +7,7 @@
     --------------------------------------------------------------  */
 
 #include "pathTools.h"
-#include <KOMO/komo.h>
+#include "komo.h"
 
 arr getVelocities_centralDifference(const arr& q, double tau) {
   arr v;
@@ -89,13 +89,13 @@ rai::String validatePath(const rai::Configuration& _C, const arr& q_now, const S
 //  K.gl().remove(K);
 //  K.gl().add(planDrawer);
 //  for(;;){
-//    int key = K.gl().watch(txt);
+//    int key = K.watch(true, txt);
 
 //    if(key==13){ //validated
 //      K.gl().remove(planDrawer);
 //      K.gl().add(K);
 //      K.setJointState(q0);
-//      K.gl().update("validated");
+//      K.watch(false, "validated");
 //      return;
 //    }
 
@@ -173,6 +173,10 @@ arr path_resample(const arr& q, double durationScale){
   return r;
 }
 
-rai::Spline getSpline(const arr& q, uint degree){
-  return rai::Spline(0, q, degree);
+rai::Spline getSpline(const arr& q, double duration, uint degree){
+  rai::Spline S = rai::Spline(0, q, degree);
+  if(duration!=1.){
+    S.times *= duration;
+  }
+  return S;
 }

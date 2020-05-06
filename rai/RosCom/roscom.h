@@ -23,17 +23,17 @@
 #include <std_msgs/String.h>
 #include <sensor_msgs/JointState.h>
 #include <visualization_msgs/MarkerArray.h>
-#include <rai_msgs/MotionReference.h>
-#include <rai_msgs/StringA.h>
+#include "../rai_msgs/MotionReference.h"
+#include "../rai_msgs/StringA.h"
 #include <std_msgs/Float64.h>
 
 //===========================================================================
 
-#include <Core/thread.h>
-#include <Core/array.h>
-#include <Geo/geo.h>
-#include <Kin/kin.h>
-#include <Control/ctrlMsg.h>
+#include "../Core/thread.h"
+#include "../Core/array.h"
+#include "../Geo/geo.h"
+#include "../Kin/kin.h"
+#include "../Control/ctrlMsg.h"
 #include "rai_msgs/JointState.h"
 #ifdef RAI_PCL
 #  include <Perception/pcl.h>
@@ -320,24 +320,24 @@ struct RosCom {
   RosCom(const char* node_name="rai_module");
   ~RosCom();
   template<class T, class P> void publish(std::shared_ptr<P>& pub, Var<T>& v, bool wait=true) {
-    pub = std::make_shared<P>(v);
+    pub = make_shared<P>(v);
     if(wait) {
       while(!pub->pub.getNumSubscribers()) rai::wait(.05);
     }
   }
   template<class T, class S> void subscribe(std::shared_ptr<S>& sub, Var<T>& v, bool wait=true) {
-    sub = std::make_shared<S>(v);
+    sub = make_shared<S>(v);
     if(wait) {
       while(!sub->sub.getNumPublishers()) rai::wait(.05);
     }
   }
-  template<class T> std::shared_ptr<Subscriber<T>> subscribe(Var<T>& v) { return std::make_shared<Subscriber<T>>(v); }
-  template<class T> std::shared_ptr<Publisher<T>> publish(Var<T>& v) { return std::make_shared<Publisher<T>>(v); }
+  template<class T> std::shared_ptr<Subscriber<T>> subscribe(Var<T>& v) { return make_shared<Subscriber<T>>(v); }
+  template<class T> std::shared_ptr<Publisher<T>> publish(Var<T>& v) { return make_shared<Publisher<T>>(v); }
 };
 
 #else
 
-#include <Core/util.h>
+#include "../Core/util.h"
 inline void rosCheckInit(const char* node_name="rai_node") { NICO }
 
 #endif

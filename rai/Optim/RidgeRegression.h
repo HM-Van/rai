@@ -6,10 +6,10 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-#ifndef RAI_linearRegression_h
-#define RAI_linearRegression_h
+#pragma once
 
-#include <Core/array.h>
+#include "../Core/array.h"
+
 
 //===========================================================================
 //
@@ -74,5 +74,3 @@ struct KernelLogisticRegression {
 
 struct KernelCRF {
 };
-
-#endif

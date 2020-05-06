@@ -88,7 +88,7 @@ void Conv_KOMO_ConstrainedProblem::phi(arr& phi, arr& J, arr& H, ObjectiveTypeA&
   if(!!J) {
     uint k=KOMO.get_k();
     uint dim_xmax = max(variableDimensions);
-    RowShifted* Jaux = makeRowShifted(J, phi.N, (k+1)*dim_xmax, x.N);
+    rai::RowShifted* Jaux = makeRowShifted(J, phi.N, (k+1)*dim_xmax, x.N);
     J.setZero();
 
     //loop over features
@@ -106,7 +106,9 @@ void Conv_KOMO_ConstrainedProblem::phi(arr& phi, arr& J, arr& H, ObjectiveTypeA&
     Jaux->computeColPatches(true);
   }
 
-  if(!!H) {
+  if(!!H) H.clear();
+  /*
+   if(!!H) {
     bool hasFterm = false;
     if(!!featureTypes) hasFterm = (featureTypes.findValue(OT_f) != -1);
     if(hasFterm) {
@@ -116,4 +118,5 @@ void Conv_KOMO_ConstrainedProblem::phi(arr& phi, arr& J, arr& H, ObjectiveTypeA&
       H.clear();
     }
   }
+  */
 }

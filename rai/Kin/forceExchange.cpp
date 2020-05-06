@@ -6,18 +6,18 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-#include "contact.h"
-#include <Gui/opengl.h>
-#include <Geo/pairCollision.h>
+#include "forceExchange.h"
+#include "../Gui/opengl.h"
+#include "../Geo/pairCollision.h"
 
-rai::Contact::Contact(rai::Frame& a, rai::Frame& b, rai::Contact* copyContact)
+rai::ForceExchange::ForceExchange(rai::Frame& a, rai::Frame& b, rai::ForceExchange* copyContact)
   : a(a), b(b) {
   CHECK(&a != &b, "");
-  CHECK_EQ(&a.K, &b.K, "contact between frames of different configuration!");
-  a.K.reset_q();
-  a.contacts.append(this);
-  b.contacts.append(this);
-  a.K.contacts.append(this);
+  CHECK_EQ(&a.C, &b.C, "contact between frames of different configuration!");
+  a.C.reset_q();
+  a.forces.append(this);
+  b.forces.append(this);
+  a.C.forces.append(this);
   setZero();
   if(copyContact) {
     position = copyContact->position;
@@ -25,34 +25,34 @@ rai::Contact::Contact(rai::Frame& a, rai::Frame& b, rai::Contact* copyContact)
   }
 }
 
-rai::Contact::~Contact() {
-  a.K.reset_q();
-  a.contacts.removeValue(this);
-  b.contacts.removeValue(this);
-  a.K.contacts.removeValue(this);
+rai::ForceExchange::~ForceExchange() {
+  a.C.reset_q();
+  a.forces.removeValue(this);
+  b.forces.removeValue(this);
+  a.C.forces.removeValue(this);
 }
 
-void rai::Contact::setZero() {
+void rai::ForceExchange::setZero() {
 //  a_rel.setZero(); b_rel.setZero(); a_norm.setZero(); b_norm.setZero(); a_rad=b_rad=0.; a_type=b_type=1;
   force.resize(3).setZero();
   position = (.5*(a.ensure_X().pos + b.ensure_X().pos)).getArr();
   if(__coll) { delete __coll; __coll=0; }
 }
 
-void rai::Contact::calc_F_from_q(const arr& q, uint n) {
+void rai::ForceExchange::calc_F_from_q(const arr& q, uint n) {
   position = q({n, n+2});
   force = q({n+3, n+5});
   if(__coll) { delete __coll; __coll=0; }
 }
 
-arr rai::Contact::calc_q_from_F() const {
+arr rai::ForceExchange::calc_q_from_F() const {
   arr q(6);
   q.setVectorBlock(position, 0);
   q.setVectorBlock(force, 3);
   return q;
 }
 
-PairCollision* rai::Contact::coll() {
+PairCollision* rai::ForceExchange::coll() {
   if(!__coll) {
     rai::Shape* s1 = a.shape;
     rai::Shape* s2 = b.shape;
@@ -66,7 +66,7 @@ PairCollision* rai::Contact::coll() {
   return __coll;
 }
 
-void rai::Contact::glDraw(OpenGL& gl) {
+void rai::ForceExchange::glDraw(OpenGL& gl) {
 #ifdef RAI_GL
   glLoadIdentity();
   glColor(1., 0., 1., 1.);
@@ -77,6 +77,15 @@ void rai::Contact::glDraw(OpenGL& gl) {
   glVertex3dv((position+force).p);
   glEnd();
   glLineWidth(1.f);
+
+  glBegin(GL_LINES);
+  glVertex3dv(&a.ensure_X().pos.x);
+  glVertex3dv(position.p);
+  glColor(.8, .5, .8, 1.);
+  glVertex3dv(position.p);
+  glVertex3dv(&b.ensure_X().pos.x);
+  glEnd();
+
   glLoadIdentity();
 
 //    f.pos=.5*(posA+posB);
@@ -86,7 +95,7 @@ void rai::Contact::glDraw(OpenGL& gl) {
 #endif
 }
 
-void rai::Contact::write(std::ostream& os) const {
+void rai::ForceExchange::write(std::ostream& os) const {
   os <<a.name <<'-' <<b.name;
   double d = 0.;
   if(__coll) {

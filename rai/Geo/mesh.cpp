@@ -12,14 +12,8 @@
 
 #include <limits>
 
-#ifdef RAI_extern_ply
+#ifdef RAI_PLY
 #  include "ply/ply.h"
-#endif
-
-#ifdef RAI_extern_GJK
-extern "C" {
-#  include "GJK/gjk.h"
-}
 #endif
 
 #ifdef RAI_GL
@@ -32,6 +26,9 @@ bool Geo_mesh_drawColors=true;
 
 extern void glColorId(uint id);
 
+//#define sphereSweptFactor *1.08
+#define sphereSweptFactor
+
 //==============================================================================
 //
 // Mesh code
@@ -43,10 +40,14 @@ rai::Mesh::Mesh()
     parsing_pos_end(std::numeric_limits<long>::max())*/{}
 
 void rai::Mesh::clear() {
-  V.clear(); Vn.clear(); T.clear(); Tn.clear(); C.clear(); //strips.clear();
+  V.clear(); Vn.clear();
+  if(C.nd==2) C.clear();
+  T.clear(); Tn.clear();
+  graph.clear();
 }
 
 void rai::Mesh::setBox() {
+  clear();
   double verts[24] = {
     -.5, -.5, -.5,
       +.5, -.5, -.5,
@@ -70,23 +71,24 @@ void rai::Mesh::setBox() {
   V.reshape(8, 3);
   T.reshape(12, 3);
   Vn.clear(); Tn.clear();
+  graph.clear();
   //cout <<V <<endl;  for(uint i=0;i<4;i++) cout <<length(V[i]) <<endl;
 }
 
 void rai::Mesh::setDot() {
-  V.resize(1, 3).setZero(); Vn.clear();
-  T.clear(); Tn.clear();
+  clear();
+  V.resize(1, 3).setZero();
 }
 
 void rai::Mesh::setLine(double l) {
+  clear();
   V.resize(2, 3).setZero();
   V(0, 2) = -.5*l;
   V(1, 2) = +.5*l;
-  Vn.clear();
-  T.clear(); Tn.clear();
 }
 
 void rai::Mesh::setTetrahedron() {
+  clear();
   double s2=RAI_SQRT2/3., s6=sqrt(6.)/3.;
   double verts[12] = { 0., 0., 1., 2.*s2, 0., -1./3., -s2, s6, -1./3., -s2, -s6, -1./3. };
   uint   tris [12] = { 0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2 };
@@ -94,11 +96,10 @@ void rai::Mesh::setTetrahedron() {
   T.setCarray(tris, 12);
   V.reshape(4, 3);
   T.reshape(4, 3);
-  Vn.clear(); Tn.clear();
-  //cout <<V <<endl;  for(uint i=0;i<4;i++) cout <<length(V[i]) <<endl;
 }
 
 void rai::Mesh::setOctahedron() {
+  clear();
   double verts[18] = {
     1, 0, 0,
     -1, 0, 0,
@@ -115,11 +116,10 @@ void rai::Mesh::setOctahedron() {
   T.setCarray(tris, 24);
   V.reshape(6, 3);
   T.reshape(8, 3);
-  Vn.clear(); Tn.clear();
-  //cout <<V <<endl;  for(uint i=0;i<4;i++) cout <<length(V[i]) <<endl;
 }
 
 void rai::Mesh::setDodecahedron() {
+  clear();
   double a = 1/sqrt(3.), b = sqrt((3.-sqrt(5.))/6.), c=sqrt((3.+sqrt(5.))/6.);
   double verts[60] = {
     a, a, a,
@@ -155,7 +155,6 @@ void rai::Mesh::setDodecahedron() {
   T.setCarray(tris, 108);
   V.reshape(20, 3);
   T.reshape(36, 3);
-  Vn.clear(); Tn.clear();
 }
 
 void rai::Mesh::setSphere(uint fineness) {
@@ -181,6 +180,7 @@ void rai::Mesh::setHalfSphere(uint fineness) {
 }
 
 void rai::Mesh::setCylinder(double r, double l, uint fineness) {
+  clear();
   uint div = 4 * (1 <<fineness);
   V.resize(2*div+2, 3);
   T.resize(4*div, 3);
@@ -215,13 +215,12 @@ void rai::Mesh::setCylinder(double r, double l, uint fineness) {
     T(4*i+3, 1)=i+div;
     T(4*i+3, 2)=2*div+1;
   }
-  Vn.clear(); Tn.clear();
 }
 
 void rai::Mesh::setSSBox(double x_width, double y_width, double z_height, double r, uint fineness) {
   CHECK(r>=0. && x_width>=2.*r && y_width>=2.*r && z_height>=2.*r, "width/height includes radius!");
   setSphere(fineness);
-  scale(r);
+  scale(r sphereSweptFactor);
   for(uint i=0; i<V.d0; i++) {
     V(i, 0) += rai::sign(V(i, 0))*(.5*x_width-r);
     V(i, 1) += rai::sign(V(i, 1))*(.5*y_width-r);
@@ -256,10 +255,14 @@ void rai::Mesh::setGrid(uint X, uint Y) {
   }
 }
 
-void rai::Mesh::setRandom(uint vertices) {
+rai::Mesh& rai::Mesh::setRandom(uint vertices) {
+  clear();
   V.resize(vertices, 3);
   rndUniform(V, -1., 1.);
+//  rndGauss(V);
+  rai::Quaternion().setRandom().applyOnPointArray(V);
   makeConvexHull();
+  return *this;
 }
 
 void rai::Mesh::subDivide() {
@@ -413,7 +416,7 @@ void rai::Mesh::setSSCvx(const arr& core, double r, uint fineness) {
   if(r>0.) {
     Mesh ball;
     ball.setSphere(fineness);
-    ball.scale(r);
+    ball.scale(r sphereSweptFactor);
 
     arr c=C;
     clear();
@@ -437,14 +440,13 @@ void rai::Mesh::setSSCvx(const arr& core, double r, uint fineness) {
   all adjacent triangles that are in the triangle list or member of
   a strip */
 void rai::Mesh::computeNormals() {
-  uint i;
   Vector a, b, c;
   Tn.resize(T.d0, 3);
   Tn.setZero();
   Vn.resize(V.d0, 3);
   Vn.setZero();
   //triangle normals and contributions
-  for(i=0; i<T.d0; i++) {
+  for(uint i=0; i<T.d0; i++) {
     uint* t=T.p+3*i;
     a.set(V.p+3*t[0]);
     b.set(V.p+3*t[1]);
@@ -457,7 +459,23 @@ void rai::Mesh::computeNormals() {
     Vn(t[2], 0)+=a.x;  Vn(t[2], 1)+=a.y;  Vn(t[2], 2)+=a.z;
   }
   Vector d;
-  for(i=0; i<Vn.d0; i++) { d.set(&Vn(i, 0)); Vn[i]()/=d.length(); }
+  for(uint i=0; i<Vn.d0; i++) { d.set(&Vn(i, 0)); Vn[i]()/=d.length(); }
+}
+
+arr rai::Mesh::computeTriDistances(){
+  if(!Tn.N) computeNormals();
+  arr d(T.d0);
+  Vector n, a, b, c;
+  for(uint i=0; i<T.d0; i++) {
+    uint* t=T.p+3*i;
+    a.set(V.p+3*t[0]);
+    b.set(V.p+3*t[1]);
+    c.set(V.p+3*t[2]);
+    n.set(Tn.p+3*i);
+
+    d(i) = a*n;
+  }
+  return d;
 }
 
 /** @brief add triangles according to the given grid; grid has to be a 2D
@@ -1040,21 +1058,23 @@ void rai::Mesh::write(std::ostream& os) const {
 
 void rai::Mesh::readFile(const char* filename) {
   const char* fileExtension = filename+(strlen(filename)-3);
-//  if(!strcmp(fileExtension, "obj")) { *this = mesh_readAssimp(filename); } else
-  if(!strcmp(fileExtension, "dae") || !strcmp(fileExtension, "DAE")) { *this = AssimpLoader(filename).getSingleMesh(); }
-  else read(FILE(filename).getIs(), fileExtension, filename);
+  read(FILE(filename).getIs(), fileExtension, filename);
 }
 
 void rai::Mesh::read(std::istream& is, const char* fileExtension, const char* filename) {
-  bool loaded=false;
-  if(!strcmp(fileExtension, "obj")) { readObjFile(is); loaded=true; }
-  if(!strcmp(fileExtension, "off")) { readOffFile(is); loaded=true; }
-  if(!strcmp(fileExtension, "ply")) { readPLY(filename); loaded=true; }
-  if(!strcmp(fileExtension, "tri")) { readTriFile(is); loaded=true; }
-  if(!strcmp(fileExtension, "arr")) { readArr(is); loaded=true; }
-  if(!strcmp(fileExtension, "stl") || !strcmp(fileExtension, "STL")) { loaded = readStlFile(is); }
-  if(!strcmp(fileExtension, "dae") || !strcmp(fileExtension, "DAE")) { *this = AssimpLoader(filename).getSingleMesh(); loaded=true; }
-  if(!loaded) HALT("can't read fileExtension '" <<fileExtension <<"' file '" <<filename <<"'");
+  if(!strcmp(fileExtension, "ply")
+     || !strcmp(fileExtension, "PLY")
+     || !strcmp(fileExtension, "dae")
+     || !strcmp(fileExtension, "DAE")) {
+    *this = AssimpLoader(filename, false).getSingleMesh();
+  }
+  else if(!strcmp(fileExtension, "obj")) { readObjFile(is); }
+  else if(!strcmp(fileExtension, "off")) { readOffFile(is); }
+  else if(!strcmp(fileExtension, "ply")) { readPLY(filename); }
+  else if(!strcmp(fileExtension, "tri")) { readTriFile(is); }
+  else if(!strcmp(fileExtension, "arr")) { readArr(is); }
+  else if(!strcmp(fileExtension, "stl") || !strcmp(fileExtension, "STL")) { readStlFile(is); }
+  else HALT("can't read fileExtension '" <<fileExtension <<"' file '" <<filename <<"'");
 }
 
 void rai::Mesh::writeTriFile(const char* filename) {
@@ -1135,7 +1155,7 @@ void rai::Mesh::readPlyFile(std::istream& is) {
   }
 }
 
-#ifdef RAI_extern_ply
+#ifdef RAI_PLY
 void rai::Mesh::writePLY(const char* fn, bool bin) {
   struct PlyFace { unsigned char nverts;  int* verts; };
   struct Vertex { float x,  y,  z ;  };
@@ -1918,10 +1938,10 @@ void inertiaCylinder(double* I, double& mass, double density, double height, dou
 
 //===========================================================================
 //
-// GJK interface
+// GJK interface (obsolete - use PairCollision)
 //
 
-#ifdef RAI_extern_GJK
+#if 0 //def RAI_GJK
 GJK_point_type& NoPointType = *((GJK_point_type*)nullptr);
 template<> const char* rai::Enum<GJK_point_type>::names []= { "GJK_none", "GJK_vertex", "GJK_edge", "GJK_face", nullptr };
 double GJK_sqrDistance(const rai::Mesh& mesh1, const rai::Mesh& mesh2,
@@ -2038,7 +2058,7 @@ double GJK_distance(rai::Mesh& mesh1, rai::Mesh& mesh2,
 // Lewiner interface
 //
 
-#ifdef RAI_extern_Lewiner
+#ifdef RAI_Lewiner
 #  include "Lewiner/MarchingCubes.h"
 
 void rai::Mesh::setImplicitSurface(ScalarFunction f, double lo, double hi, uint res) {
@@ -2115,12 +2135,11 @@ void rai::Mesh::setImplicitSurface(ScalarFunction f, double xLo, double xHi, dou
   }
 }
 
-#else //extern_Lewiner
+#else //Lewiner
 void rai::Mesh::setImplicitSurface(ScalarFunction f, double lo, double hi, uint res) {
   NICO
 }
 #endif
-/** @} */
 
 //===========================================================================
 
@@ -2316,36 +2335,61 @@ void rai::Mesh::buildGraph() {
   }
 }
 
-uint rai::Mesh::support(const arr& dir) {
+inline double __scalarProduct(const double *p1, const double* p2){
+  return p1[0]*p2[0]+p1[1]*p2[1]+p1[2]*p2[2];
+}
+
+uint rai::Mesh::support(const double *dir) {
   if(!graph.N) buildGraph();
 
-  arr q(V.d0);
-  for(uint i=0; i<V.d0; i++) q(i) = scalarProduct(dir, V[i]);
+#if 1
+
+  arr _dir(dir,3);
+  arr q = V*_dir;
   return argmax(q);
 
-#if 0
-  uint v=0;
-  arr q;
-  double ma = scalarProduct(dir, V[v]);
+#elif 0
+
+  double s = __scalarProduct(dir, V.p);
+  double ms=s;
+  uint mi=0;
+  for(uint i=0;i<V.d0;i++){
+    s = __scalarProduct(dir, V.p+3*i);
+    if(s>ms){ ms = s;  mi = i; }
+  }
+  _support_vertex = mi;
+  return _support_vertex;
+
+#else
+
+  uint mi = _support_vertex;
+  double s = __scalarProduct(dir, V.p+3*mi);
+  double ms=s;
   for(;;) {
     //comput scalar product for all neighbors
-    uintA& neigh=graph(v);
-    q.resize(neigh.N);
-    for(uint i=0; i<neigh.N; i++) q(i) = scalarProduct(dir, V[neigh(i)]);
-    uint bestNeighbor = argmax(q);
-    if(q(bestNeighbor)>ma) {
-      v = neigh(bestNeighbor);
-      ma = q(bestNeighbor);
-    } else {
-      return v;
+    uintA& neigh=graph.p[mi];
+
+    bool stop=true;
+    for(uint i:neigh){
+      s = __scalarProduct(dir, V.p+3*i);
+      if(s>ms){
+        mi = i;
+        ms = s;
+        stop = false;
+        break;
+      }
+    }
+    if(stop){
+      _support_vertex = mi;
+      return _support_vertex;
     }
   }
-  return -1;
+
 #endif
 }
 
 void rai::Mesh::supportMargin(uintA& verts, const arr& dir, double margin, int initialization) {
-  if(initialization<0 || !graph.N) initialization=support(dir);
+  if(initialization<0 || !graph.N) initialization=support(dir.p);
 
   arr p = V[initialization];
   double max = scalarProduct(p, dir);

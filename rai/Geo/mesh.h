@@ -6,20 +6,15 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-#ifndef RAI_mesh_h
-#define RAI_mesh_h
+#pragma once
 
-#include <Core/array.h>
 #include "geo.h"
+#include "../Core/array.h"
 
 namespace rai { struct Mesh; }
 typedef rai::Array<rai::Mesh> MeshA;
+typedef rai::Array<rai::Mesh*> MeshL;
 void glDrawMeshes(void*, OpenGL&);
-
-/// @file
-/// @ingroup group_geo
-/// @addtogroup group_geo
-/// @{
 
 namespace rai {
 
@@ -45,6 +40,8 @@ struct Mesh : GLDrawer {
   long parsing_pos_start;
   long parsing_pos_end;
 
+  uint _support_vertex=0;
+
   Mesh();
 
   /// @name set or create
@@ -63,7 +60,7 @@ struct Mesh : GLDrawer {
   void setSSCvx(const arr& core, double r, uint fineness=2);
   void setImplicitSurface(ScalarFunction f, double lo=-10., double hi=+10., uint res=100);
   void setImplicitSurface(ScalarFunction f, double xLo, double xHi, double yLo, double yHi, double zLo, double zHi, uint res);
-  void setRandom(uint vertices=10);
+  Mesh& setRandom(uint vertices=10);
   void setGrid(uint X, uint Y);
 
   /// @name transform and modify
@@ -82,11 +79,12 @@ struct Mesh : GLDrawer {
   void makeLineStrip();
 
   /// @name support function
-  uint support(const arr& dir);
+  uint support(const double* dir);
   void supportMargin(uintA& verts, const arr& dir, double margin, int initialization=-1);
 
   /// @name internal computations & cleanup
   void computeNormals();
+  arr computeTriDistances();
   void buildGraph();
   void deleteUnusedVertices();
   void fuseNearVertices(double tol=1e-5);
@@ -157,10 +155,6 @@ void inertiaSphere(double* Inertia, double& mass, double density, double radius)
 void inertiaBox(double* Inertia, double& mass, double density, double dx, double dy, double dz);
 void inertiaCylinder(double* Inertia, double& mass, double density, double height, double radius);
 
-/// @} end of group_geo
-
-/** @} */
-
 //===========================================================================
 //
 // analytic distance functions
@@ -198,5 +192,3 @@ double GJK_sqrDistance(const rai::Mesh& mesh1, const rai::Mesh& mesh2,
                        rai::Vector& p1, rai::Vector& p2,
                        rai::Vector& e1, rai::Vector& e2,
                        GJK_point_type& pt1, GJK_point_type& pt2);
-
-#endif

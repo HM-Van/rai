@@ -8,8 +8,8 @@
 
 #include "colorseg.h"
 
-//#define RAI_extern_libcolorseg
-#ifdef RAI_extern_libcolorseg
+//#define RAI_libcolorseg
+#ifdef RAI_libcolorseg
 
 // Felzenszwalb's files
 #include "libcolorseg/image.h"
@@ -297,7 +297,7 @@ void random_colorMap(floatA& pch_col, uint np) {
 
 #else
 
-#include <Core/util.h>
+#include "../Core/util.h"
 void pch2img(byteA& img, const uintA& pch, floatA& pch_colormap) {NICO}
 void random_colorMap(floatA& pch_colormap, uint np) {NICO}
 uint incremental_patch_ids(uintA& pch) {NICO}

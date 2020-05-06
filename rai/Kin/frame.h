@@ -8,17 +8,16 @@
 
 #pragma once
 
-#include <Core/util.h>
-#include <Geo/geo.h>
-#include <Core/graph.h>
-#include <Geo/mesh.h>
-#include <Geo/geoms.h>
+#include "../Core/util.h"
+#include "../Geo/geo.h"
+#include "../Core/graph.h"
+#include "../Geo/mesh.h"
+#include "../Geo/geoms.h"
 
 /* TODO:
  * replace the types by more fundamental:
  *  shapes: ssbox or ssmesh -- nothing else
  *  joint: 7bits
- *
  */
 
 namespace rai {
@@ -26,7 +25,7 @@ struct Frame;
 struct Joint;
 struct Shape;
 struct Inertia;
-struct Contact;
+struct ForceExchange;
 enum JointType { JT_none=-1, JT_hingeX=0, JT_hingeY=1, JT_hingeZ=2, JT_transX=3, JT_transY=4, JT_transZ=5, JT_transXY=6, JT_trans3=7, JT_transXYPhi=8, JT_universal=9, JT_rigid=10, JT_quatBall=11, JT_phiTransXY=12, JT_XBall, JT_free, JT_tau };
 enum BodyType  { BT_none=-1, BT_dynamic=0, BT_kinematic, BT_static };
 }
@@ -68,11 +67,11 @@ struct Transformation_Qtoken {
 
 /// a Frame can have a link (also joint), shape (visual or coll), and/or intertia (mass) attached to it
 struct Frame : NonCopyable {
-  struct Configuration& K;  ///< a Frame is uniquely associated with a KinematicConfiguration
+  struct Configuration& C;  ///< a Frame is uniquely associated with a KinematicConfiguration
   uint ID;                   ///< unique identifier
   String name;               ///< name
   Frame* parent=nullptr;        ///< parent frame
-  FrameL parentOf;           ///< list of children [TODO: rename]
+  FrameL children;           ///< list of children [TODO: rename]
  protected:
   Transformation Q=0;        ///< relative transform to parent
   Transformation X=0;        ///< frame's absolute pose
@@ -92,7 +91,7 @@ struct Frame : NonCopyable {
   Joint* joint=nullptr;         ///< this frame is an articulated joint
   Shape* shape=nullptr;         ///< this frame has a (collision or visual) geometry
   Inertia* inertia=nullptr;     ///< this frame has inertia (is a mass)
-  Array<Contact*> contacts;  ///< this frame is in (near-) contact with other frames
+  Array<ForceExchange*> forces;  ///< this frame is in (near-) contact with other frames
 
   Frame(Configuration& _K, const Frame* copyFrame=nullptr);
   Frame(Frame* _parent);
@@ -140,16 +139,18 @@ struct Frame : NonCopyable {
   void setRelativeQuaternion(const std::vector<double>& quat);
   void setPointCloud(const std::vector<double>& points, const std::vector<byte>& colors= {});
   void setConvexMesh(const std::vector<double>& points, const std::vector<byte>& colors= {}, double radius=0.);
+  void setMesh(const std::vector<double>& points, const std::vector<byte>& colors= {}, double radius=0.);
   void setColor(const std::vector<double>& color);
   void setJoint(rai::JointType jointType);
   void setContact(int cont);
   void setMass(double mass);
 
+  arr getPose() { return ensure_X().getArr7d(); }
   arr getPosition() { return ensure_X().pos.getArr(); }
   arr getQuaternion() { return ensure_X().rot.getArr4d(); }
   arr getRotationMatrix() { return ensure_X().rot.getArr(); }
-  arr getRelativePosition() { return ensure_X().pos.getArr(); }
-  arr getRelativeQuaternion() { return ensure_X().rot.getArr(); }
+  arr getRelativePosition() { return get_Q().pos.getArr(); }
+  arr getRelativeQuaternion() { return get_Q().rot.getArr(); }
   arr getMeshPoints();
   arr getMeshCorePoints();
 

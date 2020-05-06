@@ -8,9 +8,10 @@
 
 #include "LGP_tree.h"
 
-#include <Kin/kinViewer.h>
-#include <KOMO/komo.h>
-#include <Gui/opengl.h>
+#include "../Kin/kinViewer.h"
+#include "../Kin/viewer.h"
+#include "../KOMO/komo.h"
+#include "../Gui/opengl.h"
 #ifdef RAI_GL
 #  include <GL/gl.h>
 #  include <GL/glu.h>
@@ -71,7 +72,7 @@ struct DisplayThread : MiniThread {
 void initFolStateFromKin(FOL_World& L, const rai::Configuration& K) {
   for(rai::Frame* a:K.frames) if(a->ats["logical"]) {
       const Graph& G = a->ats["logical"]->graph();
-      for(Node* n:G) L.addFact({n->keys.last(), a->name});
+      for(Node* n:G) L.addFact({n->key, a->name});
       L.addFact({"initial", a->name});
     }
   for(rai::Frame* a:K.frames) if(a->shape && a->ats["logical"]) {
@@ -169,7 +170,7 @@ void LGP_Tree::renderToVideo(int specificBound, const char* filePrefix) {
   if(specificBound<0) specificBound=displayBound;
   CHECK(focusNode->komoProblem(specificBound) && focusNode->komoProblem(specificBound)->configurations.N, "level " <<specificBound <<" has not been computed for the current 'displayFocus'");
   if(specificBound<(int)views.N && views(specificBound)) {
-    renderConfigurations(focusNode->komoProblem(specificBound)->configurations, filePrefix, -2, 600, 600, &views(specificBound)->copy.gl().camera);
+    renderConfigurations(focusNode->komoProblem(specificBound)->configurations, filePrefix, -2, 600, 600, &views(specificBound)->copy.gl().displayCamera());
   } else {
     renderConfigurations(focusNode->komoProblem(specificBound)->configurations, filePrefix, -2, 600, 600);
   }

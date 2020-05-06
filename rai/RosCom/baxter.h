@@ -6,10 +6,10 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-#include <Core/array.h>
-#include <Core/thread.h>
-#include <Control/ctrlMsg.h>
-#include <Kin/kin.h>
+#include "../Core/array.h"
+#include "../Core/thread.h"
+#include "../Control/ctrlMsg.h"
+#include "../Kin/kin.h"
 
 #ifdef RAI_ROS
 #include <sensor_msgs/JointState.h>
@@ -18,10 +18,9 @@ bool baxter_get_q_qdot_u(arr& q, arr& q_dot, arr& u, const sensor_msgs::JointSta
 
 struct SendPositionCommandsToBaxter : Thread {
   Var<CtrlMsg> ctrl_ref;
-  struct sBaxterInterface* s;
+  unique_ptr<struct sBaxterInterface> self;
 
   SendPositionCommandsToBaxter(const rai::Configuration& baxterWorld, const Var<CtrlMsg>& _ctrl_ref);
-  ~SendPositionCommandsToBaxter() {}
 
   void open();
   void step();
@@ -34,7 +33,7 @@ struct SendPositionCommandsToBaxter : Thread {
 };
 
 struct BaxterInterface {
-  struct sBaxterInterface* s;
+  unique_ptr<struct sBaxterInterface> self;
 
   BaxterInterface(bool useRosDefault);
   ~BaxterInterface();

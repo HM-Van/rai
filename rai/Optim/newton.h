@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include <Core/array.h>
 #include "optimization.h"
 
 int optNewton(arr& x, const ScalarFunction& f, OptOptions opt=NOOPT);
@@ -17,7 +16,6 @@ struct OptNewton {
   arr& x;
   ScalarFunction f;
   OptOptions o;
-  arr* additionalRegularizer=0;
 
   enum StopCriterion { stopNone=0, stopCrit1, stopTinySteps, stopCritEvals, stopStepFailed };
   double fx;
@@ -25,7 +23,7 @@ struct OptNewton {
   double alpha, beta;
   uint its=0, evals=0, numTinySteps=0;
   StopCriterion stopCriterion;
-  arr bound_lo, bound_hi;
+  arr bound_lo, bound_up;
   bool rootFinding=false;
   ostream* logFile=nullptr;
   double timeNewton=0., timeEval=0.;

@@ -6,17 +6,11 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-/// @file
-/// @ingroup group_Gui
-/// @addtogroup group_Gui
-/// @{
+#pragma once
 
-#ifndef RAI_opengl_h
-#define RAI_opengl_h
-
-#include <Core/array.h>
-#include <Core/thread.h>
-#include <Geo/geo.h>
+#include "../Core/array.h"
+#include "../Core/thread.h"
+#include "../Geo/geo.h"
 #include <functional>
 
 #ifdef RAI_FLTK
@@ -117,7 +111,7 @@ void read_png(byteA& img, const char* file_name, bool swap_rows);
     Minimal use: call \ref add to add routines or objects to be drawn
     and \ref update or \ref watch to start the display. */
 struct OpenGL {
-  struct sOpenGL* s;
+  unique_ptr<struct sOpenGL> self;
 
   /// @name little structs to store objects and callbacks
   struct GLInitCall { virtual bool glInit(OpenGL&) = 0; };
@@ -254,9 +248,6 @@ struct OpenGL {
 //===========================================================================
 
 struct SingleGLAccess {
-//  Mutex openglMutex;
-//  void lock(){ openglMutex.lock(); }
-//  void unlock(){ openglMutex.unlock(); }
 };
 
 extern Singleton<SingleGLAccess> singleGLAccess;
@@ -285,7 +276,3 @@ struct glUI:OpenGL::GLHoverCall, OpenGL::GLClickCall {
 void glDrawUI(void* p, OpenGL&);
 
 extern OpenGL& NoOpenGL;
-
-/// @}
-
-#endif

@@ -6,15 +6,9 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-/// @file
-/// @ingroup group_Core
-/// @addtogroup group_Core
-/// @{
+#pragma once
 
-#ifndef RAI_geo_h
-#define RAI_geo_h
-
-#include <Core/array.h>
+#include "../Core/array.h"
 
 namespace rai {
 
@@ -28,6 +22,7 @@ struct Vector {
   Vector(int zero) { CHECK_EQ(zero, 0, "this is only for initialization with zero"); setZero(); }
   Vector(double x, double y, double z) { set(x, y, z); }
   Vector(const Vector& v) { set(v.x, v.y, v.z); }
+  Vector(const double* p) { set(p); }
   Vector(const arr& x) { CHECK_EQ(x.N, 3, "");  set(x.p); }
   Vector(const floatA& x) { CHECK_EQ(x.N, 3, "");  set(x(0), x(1), x(2)); }
   double* p() { return &x; }
@@ -111,7 +106,7 @@ struct Quaternion {
   void set(const std::vector<double>& x) { CHECK_EQ(x.size(), 4, "");  set(x.data()); }
   void set(const double* p);
   void setZero();
-  void setRandom();
+  Quaternion& setRandom();
   void setDeg(double degree, double axis0, double axis1, double axis2);
   void setDeg(double degree, const Vector& axis);
   void setRad(double radians, double axis0, double axis1, double axis2);
@@ -159,6 +154,7 @@ struct Quaternion {
   double* getMatrixOde(double* m) const; //in Ode foramt: 3x4 memory storae
   double* getMatrixGL(double* m) const;  //in OpenGL format: transposed 4x4 memory storage
   arr getEulerRPY() const;
+  void applyOnPointArray(arr& pts);
 
   arr getJacobian() const;
   arr getMatrixJacobian() const;
@@ -186,7 +182,7 @@ struct Transformation {
   Transformation& setText(const char* txt);
   void set(const double* p);
   void set(const arr& t);
-  void setRandom();
+  Transformation& setRandom();
   void setInverse(const Transformation& f);
   void setDifference(const Transformation& from, const Transformation& to);
   void setAffineMatrix(const double* m);
@@ -406,12 +402,3 @@ extern const rai::Quaternion Quaternion_y;
 extern const rai::Quaternion Quaternion_z;
 extern rai::Vector& NoVector;
 extern rai::Transformation& NoTransformation;
-
-//===========================================================================
-//
-// low level drivers
-//
-
-#endif
-
-/// @} //end group

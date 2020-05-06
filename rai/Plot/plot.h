@@ -6,9 +6,9 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-#ifndef RAI_plot_h
-#define RAI_plot_h
-#include <Core/util.h>
+#pragma once
+
+#include "../Core/util.h"
 
 //===========================================================================
 
@@ -30,7 +30,7 @@ typedef enum { opengl, xfig, gnupl } PlotMode;
 namespace rai {
 
 struct PlotModule : GLDrawer {
-  struct sPlotModule *s;
+  unique_ptr<struct sPlotModule> self;
   PlotMode mode;
   OpenGL* gl;
   bool light, grid, colors, drawBox, drawDots, perspective;
@@ -76,8 +76,3 @@ struct PlotModule : GLDrawer {
 extern Singleton<rai::PlotModule> plot;
 
 //===========================================================================
-
-
-
-#endif
-

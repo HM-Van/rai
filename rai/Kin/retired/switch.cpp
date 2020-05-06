@@ -8,9 +8,10 @@
 
 #include "switch.h"
 #include "kin.h"
-#include <climits>
 #include "flag.h"
-#include "contact.h"
+#include "forceExchange.h"
+
+#include <climits>
 
 //===========================================================================
 
@@ -267,7 +268,7 @@ void rai::KinematicSwitch::apply(Configuration& K) {
 
   if(symbol==SW_addContact || symbol==SW_addComplementaryContact) {
     CHECK_EQ(jointType, JT_none, "");
-    auto c = new rai::Contact(*from, *to);
+    auto c = new rai::ForceExchange(*from, *to);
     if(symbol==SW_addComplementaryContact) c->soft=true;
     c->setZero();
     return;
@@ -275,8 +276,8 @@ void rai::KinematicSwitch::apply(Configuration& K) {
 
   if(symbol==SW_delContact) {
     CHECK_EQ(jointType, JT_none, "");
-    rai::Contact* c = nullptr;
-    for(rai::Contact* cc:to->contacts) if(&cc->a==from || &cc->b==from) { c=cc; break; }
+    rai::ForceExchange* c = nullptr;
+    for(rai::ForceExchange* cc:to->forces) if(&cc->a==from || &cc->b==from) { c=cc; break; }
     if(!c) HALT("not found");
     delete c;
     return;
@@ -365,13 +366,13 @@ rai::KinematicSwitch* rai::KinematicSwitch::newSwitch(const rai::String& type, c
 //    CHECK_EQ(sw->symbol, rai::deleteJoint, "");
 //    rai::Body *b = fromShape->body;
 //    if(b->hasJoint()==1){
-////      CHECK_EQ(b->parentOf.N, 0, "");
+////      CHECK_EQ(b->children.N, 0, "");
 //      sw->toId = sw->fromId;
 //      sw->fromId = b->joint()->from->shapes.first()->index;
-//    }else if(b->parentOf.N==1){
+//    }else if(b->children.N==1){
 //      CHECK_EQ(b->hasJoint(), 0, "");
-//      sw->toId = b->parentOf(0)->from->shapes.first()->index;
-//    }else if(b->hasJoint()==0 && b->parentOf.N==0){
+//      sw->toId = b->children(0)->from->shapes.first()->index;
+//    }else if(b->hasJoint()==0 && b->children.N==0){
 //      RAI_MSG("No link to delete for shape '" <<ref1 <<"'");
 //      delete sw;
 //      return nullptr;

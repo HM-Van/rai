@@ -7,11 +7,13 @@
     --------------------------------------------------------------  */
 
 #include "util.h"
+
 #include <math.h>
 #include <string.h>
 #include <signal.h>
 #include <stdexcept>
 #include <stdarg.h>
+#include <cxxabi.h>    // for __cxa_demangle
 #if defined RAI_Linux || defined RAI_Cygwin || defined RAI_Darwin
 #  include <limits.h>
 #  include <sys/time.h>
@@ -777,11 +779,31 @@ rai::LogToken::~LogToken() {
     if(log_level<0) {
 
       if(log_level<=-2) {
-        void* trace_elems[10];
-        int trace_elem_count = backtrace(trace_elems, 10);
-        char** stack_syms = backtrace_symbols(trace_elems, trace_elem_count);
-        for(int i=trace_elem_count; i--;) std::cout <<"STACK" <<i <<' ' <<stack_syms[i] <<'\n';
-        free(stack_syms);
+        void* callstack[10];
+        int stack_count = backtrace(callstack, 10);
+        char** symbols = backtrace_symbols(callstack, stack_count);
+        for(int i=stack_count; i--;)  {
+          char* beg = symbols[i];
+          while(*beg!='(') beg++;
+          beg++;
+          char *end=beg;
+          while(*end!='+') end++;
+          if(beg!=end){
+            *end=0;
+            char *demangled = NULL;
+            int status;
+            demangled = abi::__cxa_demangle(beg, NULL, 0, &status);
+            if(demangled){
+              std::cout <<"STACK" <<i <<' ' <<demangled <<'\n';
+              free(demangled);
+            }else{
+              std::cout <<"STACK" <<i <<' ' <<symbols[i] <<'\n';
+            }
+          }else{
+            std::cout <<"STACK" <<i <<' ' <<symbols[i] <<'\n';
+          }
+        }
+        free(symbols);
       }
 
       rai::errString.clear() <<code_file <<':' <<code_func <<':' <<code_line <<'(' <<log_level <<") " <<msg;
@@ -789,8 +811,9 @@ rai::LogToken::~LogToken() {
 //       ROS_INFO("RAI-MSG: %s",rai::errString.p);
 // #endif
       if(log_level==-1) { cout <<"** WARNING:" <<rai::errString <<endl; }
-      if(log_level==-2) { cerr <<"** ERROR:" <<rai::errString <<endl; /*throw does not WORK!!! Because this is a destructor. The THROW macro does it inline*/ }
-      if(log_level==-3) { cerr <<"** HARD EXIT! " <<rai::errString <<endl;  exit(1); }
+      else if(log_level==-2) { cerr <<"** ERROR:" <<rai::errString <<endl; /*throw does not WORK!!! Because this is a destructor. The THROW macro does it inline*/ }
+      else if(log_level==-3) { cerr <<"** HARD EXIT! " <<rai::errString <<endl;  exit(1); }
+      //INSERT BREAKPOINT HERE
       if(log_level<=-3) raise(SIGUSR2);
     }
   }
@@ -983,7 +1006,7 @@ rai::String& rai::String::printf(const char* format, ...) {
 /// shorthand for the !strcmp command
 bool rai::String::operator==(const char* s) const { return p && !strcmp(p, s); }
 /// shorthand for the !strcmp command
-bool rai::String::operator==(const String& s) const { return p && s.p && !strcmp(p, s.p); }
+bool rai::String::operator==(const String& s) const { if(!p && !s.p) return true;  return p && s.p && (!strcmp(p, s.p)); }
 bool rai::String::operator!=(const char* s) const { return !operator==(s); }
 bool rai::String::operator!=(const String& s) const { return !(operator==(s)); }
 bool rai::String::operator<=(const String& s) const { return p && s.p && strcmp(p, s.p)<=0; }
@@ -1131,7 +1154,7 @@ std::ofstream& rai::FileToken::getOs(bool change_dir) {
   CHECK(!is, "don't use a FileToken both as input and output");
   if(!os) {
     if(change_dir) cd_file();
-    os = std::make_shared<std::ofstream>();
+    os = std::make_unique<std::ofstream>();
     os->open(name);
     LOG(3) <<"opening output file '" <<name <<"'" <<std::endl;
     if(!os->good()) RAI_MSG("could not open file '" <<name <<"' for output from '" <<cwd <<"./" <<path <<"'");
@@ -1143,7 +1166,7 @@ std::ifstream& rai::FileToken::getIs(bool change_dir) {
   CHECK(!os, "don't use a FileToken both as input and output");
   if(!is) {
     if(change_dir) cd_file();
-    is = std::make_shared<std::ifstream>();
+    is = std::make_unique<std::ifstream>();
     is->open(name);
     LOG(3) <<"opening input file '" <<name <<"'" <<std::endl;
     if(!is->good()) THROW("could not open file '" <<name <<"' for input from '" <<cwd <<"./" <<path <<"'");
@@ -1303,7 +1326,7 @@ bool Inotify::poll(bool block, bool verbose) {
     }
     if(event->len
         && (event->mask & (IN_MODIFY|IN_CREATE|IN_DELETE))
-        && !strncmp(event->name, fil->name.p, fil->name.N)
+        && strncmp(event->name, "z.log",5) //NOT z.log...
       ) return true; //report modification on specific file
     i += sizeof(struct inotify_event) + event->len;
   }

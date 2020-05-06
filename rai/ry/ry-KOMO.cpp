@@ -3,8 +3,8 @@
 #include "ry-KOMO.h"
 #include "types.h"
 
-#include <LGP/bounds.h>
-#include <Kin/kinViewer.h>
+#include "../LGP/bounds.h"
+#include "../Kin/kinViewer.h"
 
 Skeleton list2skeleton(const pybind11::list& L) {
   Skeleton S;
@@ -119,15 +119,17 @@ pybind11::arg("object"))
   Skeleton S = list2skeleton(L);
   cout <<"SKELETON: " <<S <<endl;
 //    self.komo->setSkeleton(S);
-  skeleton2Bound(*self.komo, boundType, S, self.komo->world, self.komo->world, collisions);
+  skeleton2Bound(self.komo, boundType, S, self.komo->world, self.komo->world, collisions);
 })
 
 //-- run
 
-.def("optimize", [](ry::RyKOMO& self, bool reinitialize_randomly) {
-  self.komo->optimize(reinitialize_randomly);
+.def("optimize", [](ry::RyKOMO& self, bool reinitialize, double initNoise) {
+  self.komo->optimize(reinitialize, initNoise);
   self.path.set() = self.komo->getPath_frames();
-})
+}, "",
+pybind11::arg("reinitialize")=true,
+pybind11::arg("initNoise")=0.01)
 
 //-- reinitialize with configuration
 .def("setConfigurations", [](ry::RyKOMO& self, ry::Config& C) {
@@ -178,23 +180,23 @@ pybind11::arg("object"))
 })
 
 .def("getForceInteractions", [](ry::RyKOMO& self) {
-  Graph G = self.komo->getContacts();
+  rai::Graph G = self.komo->getContacts();
   return graph2list(G);
 })
 
 .def("getReport", [](ry::RyKOMO& self) {
-  Graph G = self.komo->getProblemGraph(true, false);
+  rai::Graph G = self.komo->getProblemGraph(true, false);
   return graph2list(G);
 })
 
 .def("getConstraintViolations", [](ry::RyKOMO& self) {
-  Graph R = self.komo->getReport(false);
-  return R.get<double>("constraints");
+  rai::Graph R = self.komo->getReport(false);
+  return R.get<double>("ineq") + R.get<double>("eq");
 })
 
 .def("getCosts", [](ry::RyKOMO& self) {
-  Graph R = self.komo->getReport(false);
-  return R.get<double>("sqrCosts");
+  rai::Graph R = self.komo->getReport(false);
+  return R.get<double>("sos");
 })
 
 //-- display

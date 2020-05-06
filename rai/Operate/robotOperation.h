@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include <Kin/kin.h>
+#include "../Kin/kin.h"
 
 struct RobotOperation {
-  std::shared_ptr<struct sRobotOperation> s;
+  unique_ptr<struct sRobotOperation> self;
 
   RobotOperation(const rai::Configuration& _K, double dt=.01, const char* rosNodeName="rai_node");
   ~RobotOperation();

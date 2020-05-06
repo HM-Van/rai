@@ -6,17 +6,8 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-/**
- * @file
- * @ingroup group_ors
- */
-/**
- * @ingroup group_ors
- * @{
- */
-
-#include <Gui/opengl.h>
-#include <Plot/plot.h>
+#include "../Gui/opengl.h"
+#include "../Plot/plot.h"
 #include "kin.h"
 
 #include "kin_actionInterface.h"
@@ -123,8 +114,8 @@ void ActionInterface::loadConfiguration(const char* ors_filename) {
   arr BM(C->bodies.N);
   BM=1.;
   for(i=BM.N; i--;) {
-    if(C->bodies(i)->parentOf.N) {
-      BM(i) += BM(C->bodies(i)->parentOf(0)->to->index);
+    if(C->bodies(i)->children.N) {
+      BM(i) += BM(C->bodies(i)->children(0)->to->index);
     }
   }
   arr Wdiag(q0.N);
@@ -299,7 +290,7 @@ void ActionInterface::grab(const char* man_id, const char* obj_id) {
   // (1) drop object if one is in hand
   rai::Joint* e;
   uint i;
-  for_list(Type, e, C->bodies(x.i)->parentOf) {
+  for_list(Type, e, C->bodies(x.i)->children) {
     NIY;
     //C->del_edge(e);
   }
@@ -540,7 +531,7 @@ uint ActionInterface::getCatched(uint man_id) {
   return UINT_MAX;
 #else
   rai::Joint* e;
-  e=C->bodies(man_id)->parentOf(0);
+  e=C->bodies(man_id)->children(0);
   if(!e) return UINT_MAX;
   return e->to->index;
 #endif
@@ -740,7 +731,7 @@ void ActionInterface::indicateFailure() {
   // drop object
   rai::Joint* e;
   uint i;
-  for_list(Type, e, C->getBodyByName("fing1c")->parentOf) {
+  for_list(Type, e, C->getBodyByName("fing1c")->children) {
     NIY;
     //C->del_edge(e); //otherwise: no object in hand
   }
@@ -810,4 +801,3 @@ double ActionInterface::highestPosition(double x, double y, double radius, uint 
   if(DEBUG>0) cout<<"max_z = "<<max_z<<endl;
   return max_z;
 }
-/** @} */

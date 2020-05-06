@@ -6,20 +6,14 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-/// @file
-/// @ingroup group_ors
-/// @addtogroup group_ors
-/// @{
+#pragma once
 
-#ifndef RAI_tutorial_h
-#define RAI_tutorial_h
-
-#include <Core/array.h>
+#include "../Core/array.h"
 
 //(``private'') space used by the implementation but hidden from this header
 class OrsTutorial {
  public:
-  struct sOrsTutorial* s;
+  unique_ptr<struct sOrsTutorial> self;
 
   OrsTutorial();
   ~OrsTutorial();
@@ -101,6 +95,3 @@ class OrsTutorial {
 
   void indicateFailure();
 };
-
-#endif
-/// @}

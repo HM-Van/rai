@@ -6,13 +6,7 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-/// @file
-/// @ingroup group_Core
-/// @addtogroup group_Core
-/// @{
-
-#ifndef RAI_util_h
-#define RAI_util_h
+#pragma once
 
 #include <iostream>
 #include <fstream>
@@ -27,7 +21,11 @@
 #  define RAI_Linux
 #endif
 
-//----- basic defs:
+//===========================================================================
+//
+// defines
+//
+
 #define RAI_PI 3.14159265358979323846
 #define RAI_LN2 0.69314718055994528622676398299518041312694549560546875
 #define RAI_2PI 6.283195307179587
@@ -40,9 +38,8 @@
 // types
 //
 
-typedef unsigned char byte;            ///< byte
-typedef unsigned int uint;             ///< unsigned integer
-typedef const char* charp;
+typedef unsigned char byte;
+typedef unsigned int uint;
 
 //===========================================================================
 //
@@ -57,10 +54,17 @@ using std::ostream;
 using std::istream;
 using std::ofstream;
 using std::ifstream;
+using std::unique_ptr;
+using std::shared_ptr;
 template<class T> using ptr=std::shared_ptr<T>;
+using std::make_unique;
 using std::make_shared;
 
-//----- macros to define the standard <<and >>operatos for most my classes:
+//===========================================================================
+//
+// macros to define the standard <<and >>operatos for most classes
+//
+
 #define stdInPipe(type)\
   inline std::istream& operator>>(std::istream& is, type& x){ x.read(is); return is; }
 #define stdOutPipe(type)\
@@ -73,10 +77,6 @@ using std::make_shared;
 #define niyPipes(type)\
   inline std::istream& operator>>(std::istream& is, type& x){ NIY; return is; }\
   inline std::ostream& operator<<(std::ostream& os, const type& x){ NIY; return os; }
-
-//----- macros for piping doubles EXACTLY (without rounding errors) in hex coding:
-#define OUTHEX(y) "0x" <<std::hex <<*((unsigned long*)&y) <<std::dec
-#define INHEX(y)  std::hex >>*((unsigned long*)&y) >>std::dec
 
 //===========================================================================
 //
@@ -91,13 +91,14 @@ extern uint lineCount;
 extern int verboseLevel;
 extern int interactivity;
 
+//----- execute a system command
 void system(const char* cmd);
 
 //----- files
 void open(std::ofstream& fs, const char* name, const char* errmsg="");
 void open(std::ifstream& fs, const char* name, const char* errmsg="");
 
-//----- basic ui
+//----- very basic ui
 int x11_getKey();
 
 //----- strings and streams
@@ -165,15 +166,15 @@ char* date2(double sec, bool subsec);
 void wait(double sec, bool msg_on_fail=true);
 bool wait(bool useX11=true);
 
-//----- memory
-long mem();
-
 //----- timer functions
 double timerStart(bool useRealTime=false);
 double timerRead(bool reset=false);
 double timerRead(bool reset, double startTime);
 double timerPause();
 void   timerResume();
+
+//----- memory usage
+long mem();
 
 //----- command line handling
 void initCmdLine(int _argc, char* _argv[]);
@@ -195,7 +196,7 @@ uint getVerboseLevel();
 bool getInteractivity();
 }
 
-//----- stream parsing
+//----- parsing strings in a stream
 struct PARSE { const char* str; PARSE(const char* _str):str(_str) {} };
 std::istream& operator>>(std::istream& is, const PARSE&);
 
@@ -213,9 +214,9 @@ namespace rai {
 istream, but also can be send to an ostream or read from an
 istream. It is based on a simple streambuf derived from the
 rai::Mem class */
-struct String:public std::iostream {
+struct String : public std::iostream {
  private:
-  struct StringBuf:std::streambuf {
+  struct StringBuf : std::streambuf {
     String* string;
     virtual int overflow(int C = traits_type::eof());
     virtual int sync();
@@ -294,14 +295,16 @@ inline rai::String operator+(const rai::String& a, const char* b) { rai::String 
 //===========================================================================
 //
 // string-filling routines
+//
 
 namespace rai {
-rai::String getNowString();
+rai::String getNowString();  //TODO:compare with getDate2
 }
 
 //===========================================================================
 //
 // logging
+//
 
 namespace rai {
 /// An object that represents a log file and/or cout logging, together with log levels read from a cfg file
@@ -355,6 +358,7 @@ namespace rai {
 extern String errString;
 }
 
+
 #ifndef HALT
 #  define RAI_MSG(msg){ LOG(-1) <<msg; }
 #  define THROW(msg){ LOG(-1) <<msg; throw std::runtime_error(rai::errString.p); }
@@ -367,19 +371,19 @@ extern String errString;
 #ifndef RAI_NOCHECK
 
 #define CHECK(cond, msg) \
-  if(!(cond)){ LOG(-2) <<"CHECK failed: '" <<#cond <<"' " <<msg;  throw std::runtime_error(rai::errString.p); }\
+  if(!(cond)){ LOG(-2) <<"CHECK failed: '" <<#cond <<"' " <<msg;  throw std::runtime_error(rai::errString.p); }
 
 #define CHECK_ZERO(expr, tolerance, msg) \
-  if(fabs((double)(expr))>tolerance){ LOG(-2) <<"CHECK_ZERO failed: '" <<#expr<<"'=" <<expr <<" > " <<tolerance <<" -- " <<msg; throw std::runtime_error(rai::errString.p); } \
+  if(fabs((double)(expr))>tolerance){ LOG(-2) <<"CHECK_ZERO failed: '" <<#expr<<"'=" <<expr <<" > " <<tolerance <<" -- " <<msg; throw std::runtime_error(rai::errString.p); }
 
 #define CHECK_EQ(A, B, msg) \
-  if(!(A==B)){ LOG(-2) <<"CHECK_EQ failed: '" <<#A<<"'=" <<A <<" '" <<#B <<"'=" <<B <<" -- " <<msg; throw std::runtime_error(rai::errString.p); } \
+  if(!(A==B)){ LOG(-2) <<"CHECK_EQ failed: '" <<#A<<"'=" <<A <<" '" <<#B <<"'=" <<B <<" -- " <<msg; throw std::runtime_error(rai::errString.p); }
 
 #define CHECK_GE(A, B, msg) \
-  if(!(A>=B)){ LOG(-2) <<"CHECK_GE failed: '" <<#A<<"'=" <<A <<" '" <<#B <<"'=" <<B <<" -- " <<msg; throw std::runtime_error(rai::errString.p); } \
+  if(!(A>=B)){ LOG(-2) <<"CHECK_GE failed: '" <<#A<<"'=" <<A <<" '" <<#B <<"'=" <<B <<" -- " <<msg; throw std::runtime_error(rai::errString.p); }
 
 #define CHECK_LE(A, B, msg) \
-  if(!(A<=B)){ LOG(-2) <<"CHECK_LE failed: '" <<#A<<"'=" <<A <<" '" <<#B <<"'=" <<B <<" -- " <<msg; throw std::runtime_error(rai::errString.p); } \
+  if(!(A<=B)){ LOG(-2) <<"CHECK_LE failed: '" <<#A<<"'=" <<A <<" '" <<#B <<"'=" <<B <<" -- " <<msg; throw std::runtime_error(rai::errString.p); }
 
 #else
 #define CHECK(cond, msg)
@@ -453,10 +457,10 @@ template<class T> std::ostream& operator<<(FileToken& fil, const T& x) { fil.get
 inline std::ostream& operator<<(std::ostream& os, const FileToken& fil) { return os <<fil.name; }
 template<class T> FileToken& operator<<(T& x, FileToken& fil) { fil.getIs() >>x; return fil; }
 template<class T> void operator>>(const T& x, FileToken& fil) { fil.getOs() <<x; }
+inline bool operator==(const FileToken&, const FileToken&) { return false; }
 }
 #define FILE(filename) (rai::FileToken(filename, false)()) //it needs to return a REFERENCE to a local scope object
 
-inline bool operator==(const rai::FileToken&, const rai::FileToken&) { return false; }
 
 //===========================================================================
 //
@@ -597,9 +601,6 @@ struct Inotify {
   Inotify(const char* filename);
   ~Inotify();
   bool poll(bool block=false, bool verbose=false);
-
-//  void waitAndReport(){ pollForModification(false, true); }
-//  void waitForModification(bool verbose=false){ while(!pollForModification(true, verbose)); }
 };
 
 //===========================================================================
@@ -621,7 +622,7 @@ struct Mutex {
 
   struct Token {
     Mutex& m;
-    Token(Mutex& m, const char* _lockInfo):m(m) { m.lock(_lockInfo); }
+    Token(Mutex& m, const char* _lockInfo) : m(m) { m.lock(_lockInfo); }
     ~Token() { m.unlock(); }
   };
   struct Token operator()(const char* _lockInfo) { return Token(*this, _lockInfo); }
@@ -629,9 +630,11 @@ struct Mutex {
   template<class T> struct TypedToken {
     Mutex& m;
     T* data;
-    TypedToken(Mutex& m, T* data, const char* _lockInfo):m(m), data(data) { m.lock(_lockInfo); }
+    TypedToken(Mutex& m, T* data, const char* _lockInfo) : m(m), data(data) { m.lock(_lockInfo); }
     ~TypedToken() { m.unlock(); }
     T* operator->() { return data; }
+    operator T& () { return *data; }
+    T& operator()() { return *data; }
   };
   template<class T> TypedToken<T> operator()(T* data, const char* _lockInfo) { return TypedToken<T>(*this, data, _lockInfo); }
 };
@@ -643,45 +646,27 @@ struct Mutex {
 
 template<class T>
 struct Singleton {
-  static Mutex mutex;
-  static T* singleton;
 
-  T* getSingleton() const {
-    if(!singleton) {
-      mutex.lock(RAI_HERE);
-      if(!singleton) singleton = new T;
-      mutex.unlock();
-    }
+  Mutex& getMutex() const {
+    static Mutex mutex;
+    return mutex;
+  }
+
+  T& getSingleton() const {
+    static T singleton;
     return singleton;
   }
 
-  T* operator->() const { return getSingleton(); }
+  T* operator->() const { return &getSingleton(); }
   
-  ~Singleton() {
-    if(singleton) {
-//      static Mutex m; //pthread might already be deinitialized...
-//      m.lock();
-      T* mine=singleton;
-      singleton=nullptr;
-      if(mine) delete mine;
-//      m.unlock();
-    }
-  }
+  Singleton() {}
+  Singleton(Singleton const&) = delete;
+  void operator=(Singleton const&) = delete;
 
-  struct Token {
-    const Singleton<T>& base;
-    Token(Singleton<T>& _base) : base(_base) { base.getSingleton(); base.mutex.lock(RAI_HERE); }
-    ~Token() { base.mutex.unlock(); }
-    T* operator->() { return base.getSingleton(); }
-    operator T& () { return *base.getSingleton(); }
-    T& operator()() { return *base.getSingleton(); }
-  };
+  ~Singleton() {}
 
-  Token operator()() { return Token(*this); }
+  Mutex::TypedToken<T> operator()(){ return getMutex()(&getSingleton(), RAI_HERE); }
 };
-
-template<class T> T* Singleton<T>::singleton=nullptr;
-template<class T> Mutex Singleton<T>::mutex;
 
 //===========================================================================
 //
@@ -716,13 +701,18 @@ struct CoutToken {
 
 //===========================================================================
 //
-// to register a type (instead of general thing/object), use this:
+// to register a type
 //
+
+namespace rai{
+  struct Node;
+  struct Graph;
+}
 
 struct Type {
   virtual ~Type() {}
   virtual const std::type_info& typeId() const {NIY}
-  virtual struct Node* readIntoNewNode(struct Graph& container, std::istream&) const {NIY}
+  virtual struct rai::Node* readIntoNewNode(struct rai::Graph& container, std::istream&) const {NIY}
   virtual void* newInstance() const {NIY}
   void write(std::ostream& os) const {  os <<"Type '" <<typeId().name() <<"' ";  }
   void read(std::istream& is) const {NIY}
@@ -766,7 +756,3 @@ template <typename T> T clip(T& x, const T& lower, const T& upper) {
 
 std::string getcwd_string();
 const char* NAME(const std::type_info& type);
-
-#endif
-
-/// @} //end group

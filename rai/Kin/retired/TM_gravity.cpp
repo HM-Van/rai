@@ -7,12 +7,12 @@
     --------------------------------------------------------------  */
 
 #include "TM_gravity.h"
-#include <Kin/flag.h>
-#include <Kin/frame.h>
-#include <Kin/contact.h>
-#include <Kin/TM_default.h>
-#include <Kin/TM_PairCollision.h>
-#include <Kin/TM_angVel.h>
+#include "flag.h"
+#include "frame.h"
+#include "forceExchange.h"
+#include "TM_default.h"
+#include "F_PairCollision.h"
+#include "TM_angVel.h"
 
 bool JointDidNotSwitch(const rai::Frame* a1, const ConfigurationL& Ktuple, int order);
 
@@ -54,8 +54,8 @@ void TM_Gravity::phi(arr& y, arr& J, const ConfigurationL& Ktuple) {
         arr v_ref = {0., 0., -gravity};
         arr Jv_ref = zeros(3, K.q.N);
 #if 0
-        if(false && a->contacts.N) {
-          for(rai::Contact* c:a->contacts) {
+        if(false && a->forces.N) {
+          for(rai::ForceExchange* c:a->forces) {
             if(&c->a == a) {
               K.kinematicsVec(pc, (!!J?Jc:NoArr), a, c->a_rel);
             } else {
@@ -132,19 +132,19 @@ void TM_Gravity::phi(arr& y, arr& J, const ConfigurationL& Ktuple) {
           J = Jerr;
         }
 
-        if(a->contacts.N) {
-          CHECK_EQ(a->contacts.N, 1, "");
-          for(rai::Contact* con:a->contacts) {
+        if(a->forces.N) {
+          CHECK_EQ(a->forces.N, 1, "");
+          for(rai::ForceExchange* con:a->forces) {
 
             arr d, Jd;
-            TM_PairCollision dist(con->a.ID, con->b.ID, TM_PairCollision::_negScalar, false);
+            F_PairCollision dist(con->a.ID, con->b.ID, F_PairCollision::_negScalar, false);
             dist.phi(d, (!!J?Jd:NoArr), *Ktuple(-2));
             if(!!J) expandJacobian(Jd, Ktuple, -2);
             d *= 1.;
             if(!!J) Jd *= 1.;
 
 //            arr d2, Jd2;
-//            TM_PairCollision dist2(con->a.ID, con->b.ID, true, false);
+//            F_PairCollision dist2(con->a.ID, con->b.ID, true, false);
 //            dist2.phi(d2, (!!J?Jd2:NoArr), *Ktuple(-1));
 //            if(!!J) expandJacobian(Jd2, Ktuple, -1);
 //            d += d2;
@@ -157,7 +157,7 @@ void TM_Gravity::phi(arr& y, arr& J, const ConfigurationL& Ktuple) {
 //            if(!!J) Jd *= dd;
 
             arr c, Jc;
-            TM_PairCollision coll(con->a.ID, con->b.ID, TM_PairCollision::_vector, true);
+            F_PairCollision coll(con->a.ID, con->b.ID, F_PairCollision::_vector, true);
             coll.phi(c, (!!J?Jc:NoArr), K);
             if(length(c)<1e-6) continue;
             normalizeWithJac(c, Jc);

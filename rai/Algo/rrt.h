@@ -6,14 +6,13 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-#ifndef _HEADER_GUARD_RRT_H_
-#define _HEADER_GUARD_RRT_H_
+#pragma once
 
-#include <Core/array.tpp>
+#include "../Core/array.tpp"
 
 struct RRT {
  private:
-  struct sRRT* s;
+  unique_ptr<struct sRRT> self;
 
  public:
   RRT(const arr& q0, double _stepsize);
@@ -29,6 +28,3 @@ struct RRT {
   void getRandomNode(arr& q);
   arr getRandomNode();
 };
-
-#endif // _HEADER_GUARD_RRT_H_
-

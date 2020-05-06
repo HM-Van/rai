@@ -2,12 +2,12 @@
 
 #ifdef RAI_PYBIND
 
+#include "../Core/array.h"
+#include "../Core/graph.h"
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
-
-#include <Core/array.h>
-#include <Core/graph.h>
 
 namespace ry {
   typedef std::pair<std::vector<unsigned int>, std::vector<double>> I_arr;
@@ -22,11 +22,11 @@ namespace ry {
   typedef std::vector<I_objective> I_objectives;
 };
 
-pybind11::dict graph2dict(const Graph& G);
+pybind11::dict graph2dict(const rai::Graph& G);
 
-pybind11::list graph2list(const Graph& G);
+pybind11::list graph2list(const rai::Graph& G);
 
-void node2list(const Node* n, pybind11::list *list);
+void node2list(const rai::Node* n, pybind11::list *list);
 
 pybind11::tuple uintA2tuple(const uintA& tup);
 
@@ -48,8 +48,8 @@ inline ry::I_StringA I_conv(const StringA& x) {
   return y;
 }
 
-inline Graph I_conv(const ry::I_dict& x) {
-  return Graph(x);
+inline rai::Graph I_conv(const ry::I_dict& x) {
+  return rai::Graph(x);
 }
 
 inline ry::I_arr I_conv(const arr& x) {

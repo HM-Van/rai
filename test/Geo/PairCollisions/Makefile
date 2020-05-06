@@ -1,5 +1,6 @@
 BASE = ../../..
 
-DEPEND = Core Kin Geo Gui
+GL=1
+DEPEND = Core Gui Geo Kin
 
 include $(BASE)/build/generic.mk

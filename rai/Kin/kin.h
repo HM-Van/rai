@@ -6,13 +6,12 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-#ifndef RAI_kin_h
-#define RAI_kin_h
+#pragma once
 
-#include <Core/array.h>
-#include <Geo/geo.h>
-#include <Geo/geoms.h>
 #include "featureSymbols.h"
+#include "../Core/array.h"
+#include "../Geo/geo.h"
+#include "../Geo/geoms.h"
 
 struct OpenGL;
 struct PhysXInterface;
@@ -28,11 +27,12 @@ struct Joint;
 struct Shape;
 struct Frame;
 struct Proxy;
-struct Contact;
+struct ForceExchange;
 struct Configuration;
 struct KinematicSwitch;
 
 struct FclInterface;
+struct ConfigurationViewer;
 
 } // namespace rai
 
@@ -45,7 +45,7 @@ typedef rai::Array<rai::Joint*> JointL;
 typedef rai::Array<rai::Frame*> FrameL;
 typedef rai::Array<rai::Proxy*> ProxyL;
 typedef rai::Array<rai::Proxy> ProxyA;
-typedef rai::Array<rai::Contact*> ContactL;
+typedef rai::Array<rai::ForceExchange*> ForceExchangeL;
 typedef rai::Array<rai::KinematicSwitch*> KinematicSwitchL;
 typedef rai::Array<rai::Configuration*> ConfigurationL;
 
@@ -55,24 +55,25 @@ namespace rai {
 
 /// data structure to store a whole physical situation (lists of bodies, joints, shapes, proxies)
 struct Configuration : GLDrawer {
-  struct sConfiguration* s;
+  unique_ptr<struct sConfiguration> self;
 
   //-- fundamental structure
   FrameL frames;     ///< list of coordinate frames, with shapes, joints, inertias attached
-  ContactL contacts; ///< list of (force) interactions between frames
+  ForceExchangeL forces; ///< list of force exchanges between frames
   ProxyA proxies;    ///< list of current collision proximities between frames
-  arr q;             ///< the current joint configuration vector and velocities
+  arr q;             ///< the current configuration state (DOF) vector
 
   //-- derived: computed with ensure_activeSets(); reset with reset_q()
   JointL activeJoints;
 
   //-- data structure state (lazy evaluation leave the state structure out of sync)
-  bool _state_indexedJoints_areGood=false; // the active sets, esp. their topological sorting, are up to date
+  bool _state_indexedJoints_areGood=false; // the active sets, incl. their topological sorting, are up to date
   bool _state_q_isGood=false; // the q-vector represents the current relative transforms (and force dofs)
   bool _state_proxies_isGood=false; // the proxies have been created for the current state
   //TODO: need a _state for all the plugin engines (SWIFT, PhysX)? To auto-reinitialize them when the config changed structurally?
 
-  uint sparseJacobianOffset=0; // if>0, this is added to the q-index of all nonzero entries of Jacobians!
+  bool useSparseJacobians=false;
+  int xIndex=0;   // the start-index of this configuration in a larger decision variable x (e.g. if x is a path of configurations) (analogous to qIndex of a joint)
 
   static uint setJointStateCount;
 
@@ -89,11 +90,12 @@ struct Configuration : GLDrawer {
   Configuration(const char* filename);
   virtual ~Configuration();
 
+  /// @name copy
   void operator=(const rai::Configuration& K) { copy(K); }
   void copy(const rai::Configuration& K, bool referenceSwiftOnCopy=false);
   bool operator!() const;
 
-  /// @name initializations
+  /// @name initializations, building configurations
   void init(const char* filename);
   void init(const Graph& G, bool addInsteadOfClear=false);
   Frame* addFile(const char* filename);
@@ -114,6 +116,7 @@ struct Configuration : GLDrawer {
   uintA getQindicesByNames(const StringA& jointNames) const;
   StringA getJointNames() const;
   StringA getFrameNames() const;
+  uintA getNormalJointFramesAndScale(arr& scale=NoArr) const;
 
   bool checkUniqueNames() const;
   void prefixNames(bool clear=false);
@@ -138,8 +141,9 @@ struct Configuration : GLDrawer {
   Joint* attach(Frame* a, Frame* b);
   Joint* attach(const char* a, const char* b);
   FrameL getParts() const;
+  uintA getCollisionExcludePairIDs(bool verbose=false);
 
-  /// @name computations on the graph
+  /// @name computations on the tree
   void calc_indexedActiveJoints(); ///< sort of private: count the joint dimensionalities and assign j->q_index
   void calc_Q_from_q();  ///< from q compute the joint's Q transformations
   void calc_q_from_Q();  ///< updates q based on the joint's Q transformations
@@ -168,7 +172,9 @@ struct Configuration : GLDrawer {
   void setJointState(const arr& _q);
   void setJointState(const arr& _q, const StringA&);
   void setJointState(const arr& _q, const uintA&);
-  void setFrameState(const arr& X, const StringA& frameNames={}, bool warnOnDifferentDim=true, int verbose=1);
+  void setJointState(const arr& _q, const FrameL&);
+  void setFrameState(const arr& X, const StringA& frameNames= {}, bool warnOnDifferentDim=true, int verbose=1);
+  void setDofsForTree(const arr& q, rai::Frame* root);
   void setTimes(double t);
   void operator=(const arr& X) {
     if(X.d0==frames.N) setFrameState(X);
@@ -176,7 +182,7 @@ struct Configuration : GLDrawer {
     else HALT("wrong dimension");
   }
 
-  /// @name variable (groups of DOFs, e.g. agents) interface
+  /// @name variable (groups of DOFs, e.g. agents, joints, contacts) interface
   FrameL vars_frames;
   void vars_ensureFrames();
   uint vars_getNum(){ vars_ensureFrames();  return vars_frames.N; }
@@ -184,26 +190,27 @@ struct Configuration : GLDrawer {
   uint vars_getDim(uint i);
   void vars_activate(uint i);
   void vars_deactivate(uint i);
+  void vars_qIndex2varIndex(uint& varId, uint& varIndex, uint qIndex);
 
   /// @name Jacobians and kinematics (low level)
   /// what is the linear velocity of a world point (pos_world) attached to frame a for a given joint velocity?
-  void jacobian_pos(arr& J, Frame* a, const rai::Vector& pos_world, bool sparse=false) const; //usually called internally with kinematicsPos
+  void jacobian_pos(arr& J, Frame* a, const rai::Vector& pos_world) const; //usually called internally with kinematicsPos
   /// what is the angular velocity of frame a for a given joint velocity?
-  void jacobian_angular(arr& J, Frame* a, bool sparse=false) const; //usually called internally with kinematicsVec or Quat
+  void jacobian_angular(arr& J, Frame* a) const; //usually called internally with kinematicsVec or Quat
   /// how does the time coordinate of frame a change with q-change?
-  void jacobian_tau(arr& J, Frame* a, bool sparse=false) const;
+  void jacobian_tau(arr& J, Frame* a) const;
 
-  void kinematicsPos(arr& y, arr& J, Frame* a, const Vector& rel=NoVector) const;  //TODO: make vector& not vector*
+  void kinematicsPos(arr& y, arr& J, Frame* a, const Vector& rel=NoVector) const;
   void kinematicsVec(arr& y, arr& J, Frame* a, const Vector& vec=NoVector) const;
   void kinematicsQuat(arr& y, arr& J, Frame* a) const;
-  void kinematicsPos_wrtFrame(arr& y, arr& J, Frame* b, const rai::Vector& rel, Frame* s) const;
+  void kinematicsPos_wrtFrame(arr& y, arr& J, Frame* b, const rai::Vector& rel, Frame* self) const;
   void hessianPos(arr& H, Frame* a, Vector* rel=0) const;
   void kinematicsTau(double& tau, arr& J) const;
   void kinematicsRelPos(arr& y, arr& J, Frame* a, const Vector& vec1, Frame* b, const Vector& vec2) const;
   void kinematicsRelVec(arr& y, arr& J, Frame* a, const Vector& vec1, Frame* b) const;
 
-  void kinematicsContactPOA(arr& y, arr& J, Contact* c) const;
-  void kinematicsContactForce(arr& y, arr& J, Contact* c) const;
+  void kinematicsContactPOA(arr& y, arr& J, ForceExchange* c) const;
+  void kinematicsContactForce(arr& y, arr& J, ForceExchange* c) const;
 
   void kinematicsProxyCost(arr& y, arr& J, const Proxy& p, double margin=.0, bool addValues=false) const;
   void kinematicsProxyCost(arr& y, arr& J, double margin=.0) const;
@@ -214,14 +221,14 @@ struct Configuration : GLDrawer {
   ptr<Feature> feature(FeatureSymbol fs, const StringA& frames= {}) const;
   void evalFeature(arr& y, arr& J, FeatureSymbol fs, const StringA& frames= {}) const;
 
-  /// @name High level (inverse) kinematics
+  /// @name high level inverse kinematics
   void inverseKinematicsPos(Frame& frame, const arr& ytarget, const rai::Vector& rel_offset=NoVector, int max_iter=3);
 
   /// @name get infos
   arr getHmetric() const;
 
   /// @name extensions on demand
-  OpenGL& gl(const char* window_title=nullptr, bool offscreen=false);
+  ConfigurationViewer& gl(const char* window_title=nullptr, bool offscreen=false);
   SwiftInterface& swift();
   FclInterface& fcl();
   void swiftDelete();
@@ -233,7 +240,6 @@ struct Configuration : GLDrawer {
   void glAdd(void (*call)(void*, OpenGL&), void* classP);
   int glAnimate();
   void glClose();
-  void glGetMasks(int w=-1, int h=-1, bool rgbIndices=true);
   void stepSwift();
   void stepFcl();
   void stepPhysx(double tau);
@@ -248,16 +254,17 @@ struct Configuration : GLDrawer {
 
   /// @name collisions & proxies
   double totalCollisionPenetration(); ///< proxies are returns from a collision engine; contacts stable constraints
-  void copyProxies(const Configuration& K);
+  void copyProxies(const ProxyA& _proxies);
 
   /// @name I/O
   void write(std::ostream& os) const;
   void write(Graph& G) const;
   void writeURDF(std::ostream& os, const char* robotName="myrobot") const;
+  void writeCollada(const char* filename) const;
   void writeMeshes(const char* pathPrefix="meshes/") const;
   void read(std::istream& is);
   void glDraw(struct OpenGL&);
-  void glDraw_sub(struct OpenGL&);
+  void glDraw_sub(struct OpenGL&, int drawOpaqueOrTransparanet=0);
   Graph getGraph() const;
   Array<Frame*> getLinks() const;
   void displayDot();
@@ -282,7 +289,7 @@ struct Configuration_ext : Configuration {
   /// @name Jacobians and kinematics (low level)
   void kinematicsPenetrations(arr& y, arr& J=NoArr, bool penetrationsOnly=true, double activeMargin=0.) const; ///< true: if proxy(i).distance>0. => y(i)=0; else y(i)=-proxy(i).distance
   void kinematicsProxyDist(arr& y, arr& J, const Proxy& p, double margin=.02, bool useCenterDist=true, bool addValues=false) const;
-  void kinematicsContactCost(arr& y, arr& J, const Contact* p, double margin=.0, bool addValues=false) const;
+  void kinematicsContactCost(arr& y, arr& J, const ForceExchange* p, double margin=.0, bool addValues=false) const;
   void kinematicsContactCost(arr& y, arr& J, double margin=.0) const;
   void kinematicsProxyConstraint(arr& g, arr& J, const Proxy& p, double margin=.02) const;
   void kinematicsContactConstraints(arr& y, arr& J) const; //TODO: deprecated?
@@ -317,10 +324,6 @@ stdPipes(rai::Configuration)
 // OpenGL static draw functions
 //
 
-namespace rai {
-void glDrawGraph(void*, OpenGL& gl);
-}
-
 uintA stringListToShapeIndices(const rai::Array<const char*>& names, const FrameL& shapes);
 uintA shapesToShapeIndices(const FrameL& shapes);
 
@@ -333,6 +336,7 @@ void lib_ors();
 void makeConvexHulls(FrameL& frames, bool onlyContactShapes=true);
 void computeOptimalSSBoxes(FrameL& frames);
 void computeMeshNormals(FrameL& frames, bool force=false);
+void computeMeshGraphs(FrameL& frames, bool force=false);
 double forceClosureFromProxies(rai::Configuration& C, uint frameIndex,
                                double distanceThreshold=0.01,
                                double mu=.5,     //friction coefficient
@@ -355,5 +359,3 @@ int animateConfiguration(rai::Configuration& G, struct Inotify* ino=nullptr);
 
 void kinVelocity(arr& y, arr& J, uint frameId, const ConfigurationL& Ktuple, double tau);
 void kinAngVelocity(arr& y, arr& J, uint frameId, const ConfigurationL& Ktuple, double tau);
-
-#endif //RAI_ors_h

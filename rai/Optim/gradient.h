@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include <Core/array.h>
 #include "optimization.h"
 
 //===========================================================================
@@ -47,7 +46,7 @@ inline int optGrad(arr& x, const ScalarFunction& f, OptOptions opt=NOOPT) {
 
 /** Rprop, a fast gradient-based minimization */
 struct Rprop {
-  struct sRprop* s;
+  unique_ptr<struct sRprop> self;
   Rprop();
   ~Rprop();
   void init(double initialStepSize=1., double minStepSize=1e-6, double maxStepSize=50.);

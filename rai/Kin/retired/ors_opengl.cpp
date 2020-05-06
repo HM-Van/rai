@@ -6,18 +6,10 @@
     Please see <root-path>/LICENSE for details.
     --------------------------------------------------------------  */
 
-/**
- * @file
- * @ingroup group_ors
- */
-/**
- * @ingroup group_ors
- * @{
- */
-
 #include "kin.h"
-#include <Geo/mesh.h>
-#include <Gui/opengl.h>
+#include "../Geo/mesh.h"
+#include "../Gui/opengl.h"
+
 #include <iomanip>
 
 //global options
@@ -264,7 +256,7 @@ void rai::Configuration::glDraw(OpenGL& gl) {
 
 void displayState(const arr& x, rai::Configuration& G, const char* tag) {
   G.setJointState(x);
-  G.gl().watch(tag);
+  G.watch(true, tag);
 }
 
 void displayTrajectory(const arr& _x, int steps, rai::Configuration& G, const KinematicSwitchL& switches, const char* tag, double delay, uint dim_z, bool copyG) {
@@ -301,14 +293,14 @@ void displayTrajectory(const arr& _x, int steps, rai::Configuration& G, const Ki
     else Gcopy->setJointState(x[t]);
     if(delay<0.) {
       if(delay<-10.) FILE("z.graph") <<*Gcopy;
-      Gcopy->gl().watch(STRING(tag <<" (time " <<std::setw(3) <<t <<'/' <<T <<')').p);
+      Gcopy->watch(true, STRING(tag <<" (time " <<std::setw(3) <<t <<'/' <<T <<')').p);
     } else {
-      Gcopy->gl().update(STRING(tag <<" (time " <<std::setw(3) <<t <<'/' <<T <<')').p);
+      Gcopy->watch(false, STRING(tag <<" (time " <<std::setw(3) <<t <<'/' <<T <<')').p);
       if(delay) rai::wait(delay);
     }
   }
   if(steps==1)
-    Gcopy->gl().watch(STRING(tag <<" (time " <<std::setw(3) <<T <<'/' <<T <<')').p);
+    Gcopy->watch(true, STRING(tag <<" (time " <<std::setw(3) <<T <<'/' <<T <<')').p);
   if(copyG) delete Gcopy;
 }
 
@@ -471,12 +463,12 @@ void animateConfiguration(rai::Configuration& C, Inotify* ino) {
       x(i) = center + (delta*(0.5*cos(RAI_2PI*t/steps + offset)));
       // Joint limits
       C.setJointState(x);
-      C.gl().update(STRING("DOF = " <<i), false, false, true);
+      C.watch(false, STRING("DOF = " <<i), false, false, true);
       rai::wait(0.01);
     }
   }
   C.setJointState(x0);
-  C.gl().update("", false, false, true);
+  C.watch(false, "", false, false, true);
 }
 
 rai::Body* movingBody=nullptr;
@@ -638,10 +630,10 @@ void editConfiguration(const char* filename, rai::Configuration& C) {
       C.gl().lock.unlock();
     } catch(const char* msg) {
       cout <<"line " <<rai::lineCount <<": " <<msg <<" -- please check the file and press ENTER" <<endl;
-      C.gl().watch();
+      C.watch(true, );
       continue;
     }
-    C.gl().update();
+    C.watch(false, );
     cout <<"animating.." <<endl;
     //while(ino.pollForModification());
     animateConfiguration(C, &ino);
@@ -649,7 +641,7 @@ void editConfiguration(const char* filename, rai::Configuration& C) {
 #if 0
     ino.waitForModification();
 #else
-    C.gl().watch();
+    C.watch(true, );
 #endif
     if(!rai::getInteractivity()) {
       exit=true;
@@ -659,7 +651,7 @@ void editConfiguration(const char* filename, rai::Configuration& C) {
 
 #if 0 //RAI_ODE
 void testSim(const char* filename, rai::Configuration* C, Ode* ode) {
-  C.gl().watch();
+  C.watch(true, );
   uint t, T=200;
   arr x, v;
   createOde(*C, *ode);
@@ -691,4 +683,3 @@ void displayTrajectory(const arr&, int, rai::Configuration&, const char*, double
 void displayState(const arr&, rai::Configuration&, const char*) { NICO }
 #endif
 #endif
-/** @} */
