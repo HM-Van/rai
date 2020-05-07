@@ -58,7 +58,7 @@ void solve(){
 
   lgp.fol.writePDDLfiles("z");
 
-  lgp.run();
+  lgp.run(100000);
 
   if(lgp.verbose>1){
     rai::wait();

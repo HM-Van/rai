@@ -45,7 +45,7 @@ LGP_Node::LGP_Node(LGP_Tree* _tree, uint levels)
   : parent(nullptr), tree(_tree), step(0), time(0.), id(COUNT_node++),
     fol(tree->fol),
     startKinematics(tree->kin),
-    effKinematicsPath(tree->kin),
+    //effKinematicsPath(tree->kin),
     L(levels) {
   //this is the root node!
   fol.reset_state();
@@ -60,7 +60,7 @@ LGP_Node::LGP_Node(LGP_Node* parent, MCTS_Environment::Handle& a)
   : parent(parent), tree(parent->tree), step(parent->step+1), id(COUNT_node++),
     fol(parent->fol),
     startKinematics(parent->startKinematics),
-    effKinematicsPath(parent->effKinematicsPath),
+    //effKinematicsPath(parent->effKinematicsPath),
     L(parent->L) {
   parent->children.append(this);
 
@@ -102,7 +102,7 @@ void LGP_Node::expand(int verbose) {
   isExpanded=true;
 }
 
-void LGP_Node::computeEndKinematicsPath(){
+/*void LGP_Node::computeEndKinematicsPath(){
   Skeleton S = getSkeleton();
 
   std::cout <<"doing this\n";
@@ -121,7 +121,7 @@ void LGP_Node::computeEndKinematicsPath(){
   tmp.setSkeleton(S);
 //  tmp.reportProblem();
   for(rai::KinematicSwitch *s : tmp.switches) s->apply(effKinematicsPath);
-}
+}*/
 
 void LGP_Node::computeEndKinematics() {
   Skeleton S = getSkeleton();
@@ -169,9 +169,10 @@ void LGP_Node::optBound(BoundType bound, bool collisions, int verbose, double in
   if(bound==BD_pose && parent) {
     if(!parent->effKinematics.q.N) parent->computeEndKinematics();
   }
+  /*
   if(bound==BD_pathStep && parent){ //NEWCODE
     if(!parent->effKinematicsPath.q.N) parent->computeEndKinematicsPath();
-  }
+  }*/
   arrA waypoints;
   if(bound==BD_seqPath || bound==BD_seqVelPath) {
     CHECK(komoProblem(BD_seq), "BD_seq needs to be computed before");
@@ -273,7 +274,7 @@ void LGP_Node::optBound(BoundType bound, bool collisions, int verbose, double in
     effKinematics.reset_q();
     effKinematics.ensure_q();
     DEBUG(effKinematics.checkConsistency();)
-  } else if (bound==BD_pathStep){ //NEW CODE
+  }/* else if (bound==BD_pathStep){ //NEW CODE
     //if(parent) cost_here += cost(BD_symbolic); //account for the symbolic costs
 
     std::cout <<"Prev Framestate dim: " <<effKinematicsPath.getFrameState().N <<'\t';
@@ -288,7 +289,7 @@ void LGP_Node::optBound(BoundType bound, bool collisions, int verbose, double in
     effKinematicsPath.ensure_q();
     DEBUG(effKinematicsPath.checkConsistency();)
     std::cout<<"New Framestate dim: " <<effKinematicsPath.getFrameState().N <<'\n';
-  } else {
+  }*/ else {
     cost_here += cost(BD_symbolic); //account for the symbolic costs
   }
 

@@ -233,7 +233,7 @@ ENUMVAL(BD, symbolic)
 ENUMVAL(BD, pose)
 ENUMVAL(BD, seq)
 ENUMVAL(BD, path)
-ENUMVAL(BD, pathStep)
+//ENUMVAL(BD, pathStep)
 ENUMVAL(BD, seqPath)
 ENUMVAL(BD, max)
 .export_values();
